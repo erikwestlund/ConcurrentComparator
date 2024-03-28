@@ -161,7 +161,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     extractOutcomesToLocalSystem(
       andromeda,
       connection,
-      connectionDetail$dbms,
+      connectionDetails$dbms,
       outcomeDatabaseSchema,
       cdmDatabaseSchema,
       outcomeTable,
