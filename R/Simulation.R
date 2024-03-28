@@ -68,6 +68,7 @@ generateSimulatedPopulationAnalysisData <- function(
         studyStartDate = '2020-12-18',
         studyEndDate = '2021-06-30'
 ){
+    errorMessages <- checkmate::makeAssertCollection()
     checkmate::assertIntegerish(targetId)
     checkmate::assertVector(outcomeIds)
     checkmate::assertIntegerish(n, lower = 1)
@@ -81,6 +82,7 @@ generateSimulatedPopulationAnalysisData <- function(
     checkmate::assertNumeric(highRiskTargetIncidence, lower = 0, upper = 1)
     checkmate::assertCharacter(studyStartDate, pattern = '^\\d{4}-\\d{2}-\\d{2}$')
     checkmate::assertCharacter(studyEndDate, pattern = '^\\d{4}-\\d{2}-\\d{2}$')
+    checkmate::reportAssertions(collection = errorMessages)
 
     persons <- generateSimulatedPersonsData(n)
 
