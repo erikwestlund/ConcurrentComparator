@@ -17,9 +17,9 @@
 #' Concurrent Comparator Data
 #'
 #' @description
-#' `ConcurrentComparatorData` is an S4 class that inherits from [Andromeda][Andromeda::Andromeda]. It contains information on the cohorts, their
-#' outcomes, and baseline covariates. Information about multiple outcomes can be captured at once for
-#' efficiency reasons.
+#' `ConcurrentComparatorData` is an S4 class that inherits from [Andromeda][Andromeda::Andromeda]. It contains
+#' information on the cohorts, their outcomes, and baseline covariates. Information about multiple outcomes can be
+#' captured at once for efficiency reasons.
 #'
 #' A `ConcurrentComparatorData` is typically created using [getDbConcurrentComparatorData()], can only be saved using
 #' [saveConcurrentComparatorData()], and loaded using [loadConcurrentComparatorData()].
@@ -50,9 +50,9 @@ setClass("ConcurrentComparatorData", contains = "Andromeda")
 #'                                     instance. Requires read permissions to this database. On SQL
 #'                                     Server, this should specify both the database and the schema,
 #'                                     so for example 'cdm_instance.dbo'.
-#' @param tempEmulationSchema          Some database platforms like Oracle and Impala do not truly support temp tables. To
-#'.                                    emulate temp tables, provide a schema with write privileges where temp tables
-#'                                    can be created.
+#' @param tempEmulationSchema          Some database platforms like Oracle and Impala do not truly support temp tables.
+#'.                                    To emulate temp tables, provide a schema with write privileges where temp tables
+#'                                     can be created.
 #' @param targetId                     A unique identifier to define the target cohort. targetId is
 #'                                     used to select the COHORT_DEFINITION_ID in the cohort-like table.
 #' @param comparatorId                 A unique identifier to define the comparator cohort. comparatorId
@@ -75,8 +75,8 @@ setClass("ConcurrentComparatorData", contains = "Andromeda")
 #'                                     COHORT_START_DATE, COHORT_END_DATE.
 #' @param outcomeDatabaseSchema        The name of the database schema that is the location where the
 #'                                     data used to define the outcome cohorts is available.
-#' @param outcomeTable                 The tablename that contains the outcome cohorts has the format of a COHORT table: COHORT_DEFINITION_ID,
-#'                                     SUBJECT_ID, COHORT_START_DATE, COHORT_END_DATE.
+#' @param outcomeTable                 The tablename that contains the outcome cohorts has the format of a COHORT table:
+#'                                     COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE, COHORT_END_DATE.
 #' @param timeAtRiskStart              The time-at-risk start in days after subject index date.
 #' @param timeAtRiskEnd                The time-at-risk end in days after subject index date.
 #' @param washoutTime                  Washout time in days between target and comparator periods
@@ -85,6 +85,7 @@ setClass("ConcurrentComparatorData", contains = "Andromeda")
 #' A [ConcurrentComparatorData] object.
 #'
 #' @export
+
 getDbConcurrentComparatorData <- function(connectionDetails,
                                   cdmDatabaseSchema,
                                   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
@@ -102,6 +103,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
                                   washoutTime = timeAtRiskEnd + 1,
                                   intermediateFileNameStem = NULL) {
 
+    # Validate input data.
     errorMessages <- checkmate::makeAssertCollection()
     checkmate::assertClass(connectionDetails, "ConnectionDetails", add = errorMessages)
     checkmate::assertCharacter(cdmDatabaseSchema, len = 1, add = errorMessages)
@@ -124,9 +126,11 @@ getDbConcurrentComparatorData <- function(connectionDetails,
 
     start <- Sys.time()
 
+    # Establish database connection.
     connection <- DatabaseConnector::connect(connectionDetails)
     on.exit(DatabaseConnector::disconnect(connection))
 
+    # Write matched cohorts to scratch database
     ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId)
 
     writeMatchedCohortsToScratchDatabase(connectionDetails,
@@ -139,89 +143,43 @@ getDbConcurrentComparatorData <- function(connectionDetails,
 
     andromeda <- Andromeda::andromeda()
 
+    # Extract required analysis data to local system
     ParallelLogger::logInfo("Pulling matched cohorts down to local system")
-    DatabaseConnector::querySqlToAndromeda(connection = connection,
-                                           sql = paste0(
-                                               "SELECT * FROM #strata WHERE cohort_definition_id = ",
-                                               targetId),
-                                           andromeda = andromeda,
-                                           andromedaTableName = "strata",
-                                           snakeCaseToCamelCase = TRUE)
 
-    sql <- paste0("
-            SELECT exposure_id,
-                   strata_id,
-                   subject_id,
-                   cohort_start_date,
-                   DATEDIFF(DAY, cohort_start_date, cohort_end_date) AS time_at_risk
-            FROM #matched_cohort
-            WHERE cohort_definition_id = ", targetId)
-    # cohort_start_date is not necessary as it's encoded in strata_id, no?
-
-    DatabaseConnector::querySqlToAndromeda(connection = connection,
-                                           sql = sql,
-                                           andromeda = andromeda,
-                                           andromedaTableName = "matchedCohort",
-                                           snakeCaseToCamelCase = TRUE)
+    andromeda <- extractStrataToLocalSystem(connection, targetId,andromeda)
+    andromeda <- extractMatchedCohortToLocalSystem(andromeda, connection, targetId)
 
     ParallelLogger::logInfo("Removing subjects with 0 time-at-risk")
-    zeroT <- length(andromeda$matchedCohort %>% filter(exposureId == 1,
-                                                       timeAtRisk == 0) %>% distinct(subjectId))
-    zeroC <- length(andromeda$matchedCohort %>% filter(exposureId == 0,
-                                                       timeAtRisk == 0) %>% distinct(subjectId))
-
-    andromeda$matchedCohort <- andromeda$matchedCohort %>% collect() %>% filter(timeAtRisk != 0.0)
-
-    sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "GetOutcomes.sql",
-                                             packageName = "ConcurrentComparator",
-                                             dbms = conn$dbms,
-                                             outcome_database_schema = outcomeDatabaseSchema,
-                                             cdm_database_schema = cdmDatabaseSchema,
-                                             outcome_table = outcomeTable,
-                                             outcome_ids = c(outcomeIds),
-                                             exposure_ids = targetId,
-                                             days_from_obs_start = timeAtRiskStart,
-                                             days_to_obs_end = timeAtRiskEnd,
-                                             warnOnMissingParameters = TRUE)
+    matchedCohortDiagnostics <- getMatchedCohortDiagnostics(andromeda$matchedCohort)
+    andromeda$matchedCohort <- andromeda$matchedCohort %>%
+                                  collect() %>%
+                                  filter(timeAtRisk != 0.0)
 
     ParallelLogger::logInfo("Pulling outcomes (", paste0(outcomeIds, collapse = ","), ") down to local system")
-    DatabaseConnector::querySqlToAndromeda(connection = connection,
-                                           sql = sql,
-                                           andromeda = andromeda,
-                                           andromedaTableName = "allOutcomes",
-                                           snakeCaseToCamelCase = TRUE)
 
-    if (!is.null(intermediateFileNameStem)) {
-        fileName <- paste0(intermediateFileNameStem, "_1.zip")
-        Andromeda::saveAndromeda(andromeda, fileName = fileName)
-        ParallelLogger::logInfo("Matched cohorts saved to: ", fileName)
-        andromeda <- Andromeda::loadAndromeda(fileName = fileName)
-    }
+    extractOutcomesToLocalSystem(
+      andromeda,
+      connection,
+      outcomeDatabaseSchema,
+      cdmDatabaseSchema,
+      outcomeTable,
+      outcomeIds,
+      targetId,
+      timeAtRiskStart,
+      timeAtRiskEnd
+    )
+
+    andromeda <- saveIntermediateFile(andromeda, intermediateFileNameStem, 1)
 
     ParallelLogger::logInfo("Truncating to study-end-date (if specified)")
-    if (studyEndDate != "") {
-        andromeda$matchedCohort <- andromeda$matchedCohort %>%
-            # mutate(csd = cohortStartDate) %>%
-            collect() %>%
-            mutate(truncate = Andromeda::restoreDate(cohortStartDate) > as.Date(studyEndDate))
 
-        andromeda$matchedCohort <- andromeda$matchedCohort %>%
-            filter(truncate == 0) %>% select(-truncate)
-        # %>%
-            # collect() %>%
-            # mutate(csd = as.Date(cohortStartDate))
-
-        andromeda$allOutcomes <- andromeda$allOutcomes %>%
-            collect() %>%
-            mutate(truncate = Andromeda::restoreDate(cohortStartDate) > as.Date(studyEndDate))
-
-        andromeda$allOutcomes <- andromeda$allOutcomes %>%
-            filter(truncate == 0) %>% select(-truncate) %>%
-            mutate(y = 1)
-    } else {
-        andromeda$allOutcomes <- andromeda$allOutcomes %>% mutate(y = 1)
-    }
-
+    andromeda$allOutcomes <- getTruncatedOutcomeData(
+      ndromeda$matchedCohort,
+      andromeda$allOutcomes,
+      studyStartDate,
+      studyEndDate
+    )
+  
     # Add outcomes  TODO loop over all outcomes
 
     # andromeda$allOutcomes <- andromeda$matchedCohort %>%
@@ -245,12 +203,8 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     #     mutate(y = ifelse(is.na(y), 0, y))
 
 
-    if (!is.null(intermediateFileNameStem)) {
-        fileName <- paste0(intermediateFileNameStem, "_2.zip")
-        Andromeda::saveAndromeda(andromeda, fileName = fileName)
-        ParallelLogger::logInfo("Matched cohorts saved to: ", fileName)
-        andromeda <- loadAndromeda(fileName = fileName)
-    }
+    andromeda <- saveIntermediateFile(andromeda, intermediateFileNameStem, 2)
+
 
     # Summary statistics
     cohortStatistics <- andromeda$matchedCohort %>% group_by(exposureId) %>%
@@ -262,7 +216,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     attr(andromeda, "metaData") <- list(
         targetId = targetId,
         outcomeIds = outcomeIds,
-        attrition = c(zeroT, zeroC),
+        attrition = c(matchedCohortDiagnostics$zeroT, matchedCohortDiagnostics$zeroC),
         cohortStatistics = cohortStatistics
     )
 
@@ -380,4 +334,115 @@ writeMatchedCohortsToScratchDatabase <- function(connectionDetails,
 
 
     DatabaseConnector::executeSql(connection = connection, sql = sql)
+}
+
+#' TODO: doc
+#' Takes andromeda object and extracts strata to local system and returns it
+extractStrataToLocalSystem <- function(connection, targetId, andromeda) {
+    sql <- paste0("SELECT * FROM #strata WHERE cohort_definition_id = ", targetId)
+
+    DatabaseConnector::querySqlToAndromeda(connection = connection,
+                                           sql = sql,
+                                           andromeda = andromeda,
+                                           andromedaTableName = "strata",
+                                           snakeCaseToCamelCase = TRUE)
+
+    return(andromeda)
+}
+
+#' TODO: doc
+#' Takes andromeda object and extracts matched to local system and returns it
+extractMatchedCohortToLocalSystem <- function(andromeda, connection, targetId) {
+    sql <- paste0("
+            SELECT exposure_id,
+                   strata_id,
+                   subject_id,
+                   cohort_start_date,
+                   DATEDIFF(DAY, cohort_start_date, cohort_end_date) AS time_at_risk
+            FROM #matched_cohort
+            WHERE cohort_definition_id = ", targetId)
+
+    DatabaseConnector::querySqlToAndromeda(connection = connection,
+                                           sql = sql,
+                                           andromeda = andromeda,
+                                           andromedaTableName = "matchedCohort",
+                                           snakeCaseToCamelCase = TRUE)
+
+    return(andromeda)
+}
+
+#' TODO: doc
+getMatchedCohortDiagnostics <- function(matchedCohort) {
+    zeroT <- length(matchedCohort %>% filter(exposureId == 1,
+                                                       timeAtRisk == 0) %>% distinct(subjectId))
+    zeroC <- length(matchedCohort %>% filter(exposureId == 0,
+                                                       timeAtRisk == 0) %>% distinct(subjectId))
+
+    return(list(zeroT = zeroT,
+                zeroC = zeroC))
+}
+
+#' TODO: doc
+extractOutcomesToLocalSystem <- function(
+  andromeda,
+  connection,
+  outcomeDatabaseSchema,
+  cdmDatabaseSchema,
+  outcomeTable,
+  outcomeIds,
+  targetId,
+  timeAtRiskStart,
+  timeAtRiskEnd
+) {
+    sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "GetOutcomes.sql",
+                                                 packageName = "ConcurrentComparator",
+                                                 dbms = connection$dbms,
+                                                 outcome_database_schema = outcomeDatabaseSchema,
+                                                 cdm_database_schema = cdmDatabaseSchema,
+                                                 outcome_table = outcomeTable,
+                                                 outcome_ids = c(outcomeIds),
+                                                 exposure_ids = targetId,
+                                                 days_from_obs_start = timeAtRiskStart,
+                                                 days_to_obs_end = timeAtRiskEnd,
+                                                 warnOnMissingParameters = TRUE)
+
+     DatabaseConnector::querySqlToAndromeda(connection = connection,
+                                           sql = sql,
+                                           andromeda = andromeda,
+                                           andromedaTableName = "allOutcomes",
+                                           snakeCaseToCamelCase = TRUE)
+
+    return(andromeda)
+}
+
+#' TODO: doc
+saveIntermediateFile <- function(andromeda, intermediateFileNameStem, suffix = 1) {
+  if (!is.null(intermediateFileNameStem)) {
+    fileName <- paste0(intermediateFileNameStem, "_", suffix, ".zip")
+    Andromeda::saveAndromeda(andromeda, fileName = fileName)
+    ParallelLogger::logInfo("Matched cohorts saved to: ", fileName)
+    andromeda <- Andromeda::loadAndromeda(fileName = fileName)
+  }
+  return(andromeda)
+}
+
+getTruncatedOutcomeData <- function(matchedCohort, outcomes, cohortStartDate, studyEndDate = "") {
+  if (studyEndDate != "") {
+        matchedCohort <- matchedCohort %>%
+            collect() %>%
+            mutate(truncate = Andromeda::restoreDate(cohortStartDate) > as.Date(studyEndDate)) %>%
+            filter(truncate == 0) %>%
+            select(-truncate)
+
+        outcomes <- outcomes %>%
+            collect() %>%
+            mutate(truncate = Andromeda::restoreDate(cohortStartDate) > as.Date(studyEndDate)) %>%
+            filter(truncate == 0) %>%
+            select(-truncate) %>%
+            mutate(y = 1)
+    } else {
+        outcomes <- outcomes %>% mutate(y = 1)
+    }
+
+  return (outcomes)
 }
