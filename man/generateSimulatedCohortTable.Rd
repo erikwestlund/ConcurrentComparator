@@ -23,8 +23,8 @@ generateSimulatedCohortTable(
 )
 }
 \arguments{
-\item{persons}{A data frame with a format similar to the `persons` table in an OHDSI CDM instance.
-The data frame must include the following columns: `person_id`, `birth_datetime`,
+\item{persons}{A tibble with a format similar to the `persons` table in an OHDSI CDM instance.
+The tibble must include the following columns: `person_id`, `birth_datetime`,
 `gender_concept_id`, `race_concept_id`, and `ethnicity_concept_id`.}
 
 \item{targetId}{The ID of the target cohort that received the vaccine. This ID corresponds to the ID of
@@ -72,7 +72,7 @@ For example, if the study end date is 2021-06-30 and this value is 500, then the
 can include people who received the vaccine between 2020-02-11 and 2021-06-30.}
 }
 \value{
-A data frame with the following columns:
+A tibble with the following columns:
 
 - cohort_definition_id:   The ID of the cohort for which the row is a member. The ID
                           corresponds to the ID of the cohort in the JSON cohort

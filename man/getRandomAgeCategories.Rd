@@ -7,7 +7,7 @@
 getRandomAgeCategories(n = 1)
 }
 \value{
-A data frame with columns concept_id, name, domain, and probability.
+A tibble with columns concept_id, name, domain, and probability.
 
 - concept_id: The unique identifier for the concept.
 - name: The name of the concept.

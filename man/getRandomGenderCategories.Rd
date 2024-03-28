@@ -7,7 +7,7 @@
 getRandomGenderCategories(n = 1)
 }
 \value{
-A data frame with the following columns:
+A tibble with the following columns:
 
 - age_group_id: The unique identifier for the age group.
 - name: The name of the age group.

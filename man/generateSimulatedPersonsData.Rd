@@ -12,7 +12,7 @@ generateSimulatedPersonsData(n = 1000, studyEndDate = "2021-06-01")
 \item{studyEndDate}{The date the study ended in YYYY-MM-DD format.}
 }
 \value{
-A data frame with the following columns:
+A tibble with the following columns:
 
 - `person_id`: A unique identifier for each person.
 - `birth_datetime`: The date of birth of the person in YYYY-MM-DD format.
