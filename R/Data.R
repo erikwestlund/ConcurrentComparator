@@ -122,23 +122,20 @@ getDbConcurrentComparatorData <- function(connectionDetails,
 
     checkmate::assertInt(outcomeIds, add = errorMessages) # TODO generalize for multiple outcomes
 
-    sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CohortExtraction.sql",
-                                             packageName = "ConcurrentComparator",
-                                             dbms = conn$dbms,
-                                             cdm_database_schema = cdmDatabaseSchema,
-                                             cohort_database_schema = exposureDatabaseSchema,
-                                             cohort_table = exposureTable,
-                                             time_at_risk = timeAtRiskEnd,
-                                             delta_time = washoutTime,
-                                             cohort_ids = c(targetId),
-                                             warnOnMissingParameters = TRUE)
-
     start <- Sys.time()
+
     connection <- DatabaseConnector::connect(connectionDetails)
     on.exit(DatabaseConnector::disconnect(connection))
 
     ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId)
-    DatabaseConnector::executeSql(connection = connection, sql = sql)
+
+    writeMatchedCohortsToScratchDatabase(connectionDetails,
+                      cdmDatabaseSchema,
+                      exposureDatabaseSchema,
+                      exposureTable,
+                      timeAtRiskEnd,
+                      washoutTime,
+                      targetId)
 
     andromeda <- Andromeda::andromeda()
 
@@ -152,13 +149,13 @@ getDbConcurrentComparatorData <- function(connectionDetails,
                                            snakeCaseToCamelCase = TRUE)
 
     sql <- paste0("
-SELECT exposure_id,
-       strata_id,
-       subject_id,
-       cohort_start_date,
-       DATEDIFF(DAY, cohort_start_date, cohort_end_date) AS time_at_risk
-FROM #matched_cohort
-WHERE cohort_definition_id = ", targetId)
+            SELECT exposure_id,
+                   strata_id,
+                   subject_id,
+                   cohort_start_date,
+                   DATEDIFF(DAY, cohort_start_date, cohort_end_date) AS time_at_risk
+            FROM #matched_cohort
+            WHERE cohort_definition_id = ", targetId)
     # cohort_start_date is not necessary as it's encoded in strata_id, no?
 
     DatabaseConnector::querySqlToAndromeda(connection = connection,
@@ -359,4 +356,28 @@ loadConcurrentComparatorData <- function(file) {
     class(ConcurrentComparatorData) <- "ConcurrentComparatorData"
     attr(class(ConcurrentComparatorData), "package") <- "ConcurrentComparator"
     return(ConcurrentComparatorData)
+}
+
+#' TODO: document once working
+writeMatchedCohortsToScratchDatabase <- function(connectionDetails,
+                              cdmDatabaseSchema,
+                              exposureDatabaseSchema,
+                              exposureTable,
+                              timeAtRiskEnd,
+                              washoutTime,
+                              targetId) {
+
+    sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CohortExtraction.sql",
+                                             packageName = "ConcurrentComparator",
+                                             dbms = connectionDetails$dbms,
+                                             cdm_database_schema = cdmDatabaseSchema,
+                                             cohort_database_schema = exposureDatabaseSchema,
+                                             cohort_table = exposureTable,
+                                             time_at_risk = timeAtRiskEnd,
+                                             delta_time = washoutTime,
+                                             cohort_ids = c(targetId),
+                                             warnOnMissingParameters = TRUE)
+
+
+    DatabaseConnector::executeSql(connection = connection, sql = sql)
 }
