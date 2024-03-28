@@ -86,7 +86,6 @@ setClass("ConcurrentComparatorData", contains = "Andromeda")
 #'
 #' @export
 
-
 getDbConcurrentComparatorData <- function(connectionDetails,
                                   cdmDatabaseSchema,
                                   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
@@ -104,7 +103,6 @@ getDbConcurrentComparatorData <- function(connectionDetails,
                                   washoutTime = timeAtRiskEnd + 1,
                                   intermediateFileNameStem = NULL) {
 
-    # Validate input data.
     errorMessages <- checkmate::makeAssertCollection()
     checkmate::assertClass(connectionDetails, "ConnectionDetails", add = errorMessages)
     checkmate::assertCharacter(cdmDatabaseSchema, len = 1, add = errorMessages)
@@ -123,14 +121,12 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     checkmate::assertLogical(overwriteComparators, len = 1, add = errorMessages) # TODO Remove
     checkmate::reportAssertions(collection = errorMessages)
 
-    checkmate::assertInt(outcomeIds, add = errorMessages) # TODO generalize for multiple outcomes
+    # checkmate::assertInt(outcomeIds, add = errorMessages) # TODO generalize for multiple outcomes
 
     start <- Sys.time()
+    connection <- initializeDatabaseConnection(connectionDetails)
 
-    connection <- DatabaseConnector::connect(connectionDetails)
-    on.exit(DatabaseConnector::disconnect(connection))
-
-    ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId)
+    ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId, ".")
     writeMatchedCohortsToScratchDatabase(
       connectionDetails$dbms,
       cdmDatabaseSchema,
@@ -141,16 +137,18 @@ getDbConcurrentComparatorData <- function(connectionDetails,
       targetId
     )
 
-    ParallelLogger::logInfo("Pulling matched cohorts down to local system")
+    ParallelLogger::logInfo("Initializing ConcurrentComparator data object on local system.")
     concurrentComparatorData <- initializeConcurrentComparatorData()
+
+    ParallelLogger::logInfo("Extracting strata and matched cohort data.")
     concurrentComparatorData <- writeStrataToConncurentComparatorData(concurrentComparatorData, connection, targetId)
     concurrentComparatorData <- writeMatchedCohortToConcurrentComparatorData(concurrentComparatorData, connection, targetId)
 
-    ParallelLogger::logInfo("Removing subjects with 0 time-at-risk")
+    ParallelLogger::logInfo("Removing subjects with 0 time-at-risk.")
     matchedCohortDiagnostics <- getMatchedCohortDiagnostics(concurrentComparatorData$matchedCohort)
     concurrentComparatorData <- removeMatchedCohortEpisodesWithZeroTimeAtRisk(concurrentComparatorData)
 
-    ParallelLogger::logInfo("Pulling outcomes (", paste0(outcomeIds, collapse = ","), ") down to local system")
+    ParallelLogger::logInfo("Extracting outcomes (IDs: ", paste0(outcomeIds, collapse = ","), ").")
     concurrentComparatorData <- writeOutcomesToConcurrentComparatorData(
       concurrentComparatorData,
       connection,
@@ -166,7 +164,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
 
     concurrentComparatorData <- saveIntermediateFile(concurrentComparatorData, intermediateFileNameStem, 1)
 
-    ParallelLogger::logInfo("Truncating to study-end-date (if specified)")
+    ParallelLogger::logInfo("Truncating to study-end-date (if specified).")
     concurrentComparatorData$allOutcomes <- getTruncatedOutcomeData(
       concurrentComparatorData$matchedCohort,
       concurrentComparatorData$allOutcomes,
@@ -185,7 +183,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     )
 
     delta <- Sys.time() - start
-    message("Getting CC data from server took ", signif(delta, 3), " ", attr(delta, "units"))
+    message("Getting ConcurrentComparator data from server took ", signif(delta, 3), " ", attr(delta, "units"))
 
     return(concurrentComparatorData)
 }
@@ -272,6 +270,14 @@ loadConcurrentComparatorData <- function(file) {
     attr(class(ConcurrentComparatorData), "package") <- "ConcurrentComparator"
     return(ConcurrentComparatorData)
 }
+
+#' TODO:
+initializeDatabaseConnection <- function(connectionDetails) {
+    connection <- DatabaseConnector::connect(connectionDetails)
+    on.exit(DatabaseConnector::disconnect(connection))
+    return(connection)
+}
+
 
 #' TODO: document once working
 writeMatchedCohortsToScratchDatabase <- function(dbms,
