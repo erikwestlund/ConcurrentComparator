@@ -133,20 +133,20 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     # Write matched cohorts to scratch database
     ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId)
 
-    writeMatchedCohortsToScratchDatabase(connectionDetails,
-                      cdmDatabaseSchema,
-                      exposureDatabaseSchema,
-                      exposureTable,
-                      timeAtRiskEnd,
-                      washoutTime,
-                      targetId)
+    writeMatchedCohortsToScratchDatabase(
+      connectionDetails,
+      cdmDatabaseSchema,
+      exposureDatabaseSchema,
+      exposureTable,
+      timeAtRiskEnd,
+      washoutTime,
+      targetId)
 
+    # Extract required analysis data to local system using Andromeda
+    ParallelLogger::logInfo("Pulling matched cohorts down to local system")
     andromeda <- Andromeda::andromeda()
 
-    # Extract required analysis data to local system
-    ParallelLogger::logInfo("Pulling matched cohorts down to local system")
-
-    andromeda <- extractStrataToLocalSystem(connection, targetId,andromeda)
+    andromeda <- extractStrataToLocalSystem(connection, targetId, andromeda)
     andromeda <- extractMatchedCohortToLocalSystem(andromeda, connection, targetId)
 
     ParallelLogger::logInfo("Removing subjects with 0 time-at-risk")
@@ -179,7 +179,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
       studyStartDate,
       studyEndDate
     )
-  
+
     # Add outcomes  TODO loop over all outcomes
 
     # andromeda$allOutcomes <- andromeda$matchedCohort %>%
