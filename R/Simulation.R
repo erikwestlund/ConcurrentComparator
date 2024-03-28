@@ -407,9 +407,6 @@ generateMatchedStrataForComparatorCohort <- function(strata, comparatorCohort, p
 
 #' Gets an age group ID from a reference date and date of birth.
 #'
-#' @description
-#'
-#'
 #' @param referenceDate     The date to use as the reference date for calculating age.
 #' @param dateOfBirth       The date of birth of the person.
 #'

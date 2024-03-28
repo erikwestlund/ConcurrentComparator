@@ -119,7 +119,7 @@ results <- runConcurrentComparatorAnalyses(connectionDetails = conn,
                                 outcomeIds = c(668),
                                 controlIds = c(74816))
 
-aggreagateConcurrentComparatorResults(results, outputFolder)
+aggregateConcurrentComparatorResults(results, outputFolder)
 
 
 ### OLD MATERIAL BELOW

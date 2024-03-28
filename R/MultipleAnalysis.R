@@ -15,7 +15,7 @@
 # limitations under the License.
 
 #' @export
-aggreagateConcurrentComparatorResults <- function(results,
+aggregateConcurrentComparatorResults <- function(results,
                                                   outputFolder = "./ConcurrentComparatorOutput") {
 
     table <- do.call(rbind,

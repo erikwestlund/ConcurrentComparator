@@ -155,6 +155,6 @@ results <- runConcurrentComparatorAnalyses(connectionDetails = conn,
 
 warning("deprecated use of `controlIds`.  use `CohortGenerator::generateNegativeControlOutcomeCohorts()`")
 
-aggreagateConcurrentComparatorResults(results, outputFolder)
+aggregateConcurrentComparatorResults(results, outputFolder)
 ```
 
