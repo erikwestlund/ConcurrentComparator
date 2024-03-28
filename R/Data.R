@@ -133,8 +133,9 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     # Write matched cohorts to scratch database
     ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId)
 
+    ## NOTE: Works on prod
     writeMatchedCohortsToScratchDatabase(
-      connectionDetails,
+      connectionDetails$dbms,
       cdmDatabaseSchema,
       exposureDatabaseSchema,
       exposureTable,
@@ -146,7 +147,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     ParallelLogger::logInfo("Pulling matched cohorts down to local system")
     andromeda <- Andromeda::andromeda()
 
-    andromeda <- extractStrataToLocalSystem(connection, targetId, andromeda)
+    andromeda <- extractStrataToLocalSystem(andromeda, connection, targetId)
     andromeda <- extractMatchedCohortToLocalSystem(andromeda, connection, targetId)
 
     ParallelLogger::logInfo("Removing subjects with 0 time-at-risk")
@@ -160,6 +161,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     extractOutcomesToLocalSystem(
       andromeda,
       connection,
+      connectionDetail$dbms,
       outcomeDatabaseSchema,
       cdmDatabaseSchema,
       outcomeTable,
@@ -313,7 +315,7 @@ loadConcurrentComparatorData <- function(file) {
 }
 
 #' TODO: document once working
-writeMatchedCohortsToScratchDatabase <- function(connectionDetails,
+writeMatchedCohortsToScratchDatabase <- function(dbms,
                               cdmDatabaseSchema,
                               exposureDatabaseSchema,
                               exposureTable,
@@ -323,7 +325,7 @@ writeMatchedCohortsToScratchDatabase <- function(connectionDetails,
 
     sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CohortExtraction.sql",
                                              packageName = "ConcurrentComparator",
-                                             dbms = connectionDetails$dbms,
+                                             dbms = dbms,
                                              cdm_database_schema = cdmDatabaseSchema,
                                              cohort_database_schema = exposureDatabaseSchema,
                                              cohort_table = exposureTable,
@@ -338,7 +340,7 @@ writeMatchedCohortsToScratchDatabase <- function(connectionDetails,
 
 #' TODO: doc
 #' Takes andromeda object and extracts strata to local system and returns it
-extractStrataToLocalSystem <- function(connection, targetId, andromeda) {
+extractStrataToLocalSystem <- function(andromeda, connection, targetId) {
     sql <- paste0("SELECT * FROM #strata WHERE cohort_definition_id = ", targetId)
 
     DatabaseConnector::querySqlToAndromeda(connection = connection,
@@ -386,6 +388,7 @@ getMatchedCohortDiagnostics <- function(matchedCohort) {
 extractOutcomesToLocalSystem <- function(
   andromeda,
   connection,
+  dbms,
   outcomeDatabaseSchema,
   cdmDatabaseSchema,
   outcomeTable,
@@ -396,7 +399,7 @@ extractOutcomesToLocalSystem <- function(
 ) {
     sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "GetOutcomes.sql",
                                                  packageName = "ConcurrentComparator",
-                                                 dbms = connection$dbms,
+                                                 dbms = dbms,
                                                  outcome_database_schema = outcomeDatabaseSchema,
                                                  cdm_database_schema = cdmDatabaseSchema,
                                                  outcome_table = outcomeTable,
