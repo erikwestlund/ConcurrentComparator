@@ -86,6 +86,7 @@ setClass("ConcurrentComparatorData", contains = "Andromeda")
 #'
 #' @export
 
+
 getDbConcurrentComparatorData <- function(connectionDetails,
                                   cdmDatabaseSchema,
                                   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
@@ -126,14 +127,10 @@ getDbConcurrentComparatorData <- function(connectionDetails,
 
     start <- Sys.time()
 
-    # Establish database connection.
     connection <- DatabaseConnector::connect(connectionDetails)
     on.exit(DatabaseConnector::disconnect(connection))
 
-    # Write matched cohorts to scratch database
     ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId)
-
-    ## NOTE: Works on prod
     writeMatchedCohortsToScratchDatabase(
       connectionDetails$dbms,
       cdmDatabaseSchema,
@@ -141,25 +138,21 @@ getDbConcurrentComparatorData <- function(connectionDetails,
       exposureTable,
       timeAtRiskEnd,
       washoutTime,
-      targetId)
+      targetId
+    )
 
-    # Extract required analysis data to local system using Andromeda
     ParallelLogger::logInfo("Pulling matched cohorts down to local system")
-    andromeda <- Andromeda::andromeda()
-
-    andromeda <- extractStrataToLocalSystem(andromeda, connection, targetId)
-    andromeda <- extractMatchedCohortToLocalSystem(andromeda, connection, targetId)
+    concurrentComparatorData <- initializeConcurrentComparatorData()
+    concurrentComparatorData <- writeStrataToConncurentComparatorData(concurrentComparatorData, connection, targetId)
+    concurrentComparatorData <- writeMatchedCohortToConcurrentComparatorData(concurrentComparatorData, connection, targetId)
 
     ParallelLogger::logInfo("Removing subjects with 0 time-at-risk")
-    matchedCohortDiagnostics <- getMatchedCohortDiagnostics(andromeda$matchedCohort)
-    andromeda$matchedCohort <- andromeda$matchedCohort %>%
-                                  collect() %>%
-                                  filter(timeAtRisk != 0.0)
+    matchedCohortDiagnostics <- getMatchedCohortDiagnostics(concurrentComparatorData$matchedCohort)
+    concurrentComparatorData <- removeMatchedCohortEpisodesWithZeroTimeAtRisk(concurrentComparatorData)
 
     ParallelLogger::logInfo("Pulling outcomes (", paste0(outcomeIds, collapse = ","), ") down to local system")
-
-    extractOutcomesToLocalSystem(
-      andromeda,
+    concurrentComparatorData <- writeOutcomesToConcurrentComparatorData(
+      concurrentComparatorData,
       connection,
       connectionDetails$dbms,
       outcomeDatabaseSchema,
@@ -171,64 +164,30 @@ getDbConcurrentComparatorData <- function(connectionDetails,
       timeAtRiskEnd
     )
 
-    andromeda <- saveIntermediateFile(andromeda, intermediateFileNameStem, 1)
+    concurrentComparatorData <- saveIntermediateFile(concurrentComparatorData, intermediateFileNameStem, 1)
 
     ParallelLogger::logInfo("Truncating to study-end-date (if specified)")
-
-    andromeda$allOutcomes <- getTruncatedOutcomeData(
-      ndromeda$matchedCohort,
-      andromeda$allOutcomes,
+    concurrentComparatorData$allOutcomes <- getTruncatedOutcomeData(
+      concurrentComparatorData$matchedCohort,
+      concurrentComparatorData$allOutcomes,
       studyStartDate,
       studyEndDate
     )
 
-    # Add outcomes  TODO loop over all outcomes
+    concurrentComparatorData <- saveIntermediateFile(concurrentComparatorData, intermediateFileNameStem, 2)
 
-    # andromeda$allOutcomes <- andromeda$matchedCohort %>%
-    #     inner_join(andromeda$allOutcomes %>%
-    #                    select(subjectId, strataId, cohortStartDate, daysToEvent, outcomeStartDate, outcomeId),
-    #                by = c("subjectId", "strataId", "cohortStartDate")
-    #     ) %>%
-    #     filter(daysToEvent >= timeAtRiskStart,
-    #            daysToEvent <= timeAtRiskEnd) %>%
-    #     mutate(y = 1)
-
-
-
-
-
-    # andromeda$outcomeMatchedCohort <- andromeda$matchedCohort %>%
-    #     left_join(intersection %>% filter(outcomeId == !!oId) %>%
-    #                   select(exposureId, subjectId, strataId, cohortStartDate, outcome, outcomeStartDate, daysToEvent),
-    #               by = c("exposureId", "subjectId", "strataId", "cohortStartDate")
-    #     ) %>%
-    #     mutate(y = ifelse(is.na(y), 0, y))
-
-
-    andromeda <- saveIntermediateFile(andromeda, intermediateFileNameStem, 2)
-
-
-    # Summary statistics
-    cohortStatistics <- andromeda$matchedCohort %>% group_by(exposureId) %>%
-        summarise(entries = n(),
-                  subjects = n_distinct(subjectId),
-                  kPtYrs = sum(timeAtRisk / 365.25 / 1000)) %>%
-        as_tibble()
-
-    attr(andromeda, "metaData") <- list(
-        targetId = targetId,
-        outcomeIds = outcomeIds,
-        attrition = c(matchedCohortDiagnostics$zeroT, matchedCohortDiagnostics$zeroC),
-        cohortStatistics = cohortStatistics
+    # Attach metadata and summary statistics to concurrent comparator data.
+    concurrentComparatorData <- writeMetaDataToConcurrentComparatorData(
+        concurrentComparatorData,
+        targetId,
+        outcomeIds,
+        matchedCohortDiagnostics
     )
-
-    class(andromeda) <- "ConcurrentComparatorData"
-    attr(class(andromeda), "package") <- "ConcurrentComparator"
 
     delta <- Sys.time() - start
     message("Getting CC data from server took ", signif(delta, 3), " ", attr(delta, "units"))
 
-    return(andromeda)
+    return(concurrentComparatorData)
 }
 
 # #' @export
@@ -339,22 +298,29 @@ writeMatchedCohortsToScratchDatabase <- function(dbms,
 }
 
 #' TODO: doc
+initializeConcurrentComparatorData <- function() {
+    concurrentComparatorData <- Andromeda::andromeda()
+    return(concurrentComparatorData)
+}
+
+
+#' TODO: doc
 #' Takes andromeda object and extracts strata to local system and returns it
-extractStrataToLocalSystem <- function(andromeda, connection, targetId) {
+writeStrataToConncurentComparatorData <- function(concurrentComparatorData, connection, targetId) {
     sql <- paste0("SELECT * FROM #strata WHERE cohort_definition_id = ", targetId)
 
     DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
-                                           andromeda = andromeda,
+                                           andromeda = concurrentComparatorData,
                                            andromedaTableName = "strata",
                                            snakeCaseToCamelCase = TRUE)
 
-    return(andromeda)
+    return(concurrentComparatorData)
 }
 
 #' TODO: doc
 #' Takes andromeda object and extracts matched to local system and returns it
-extractMatchedCohortToLocalSystem <- function(andromeda, connection, targetId) {
+writeMatchedCohortToConcurrentComparatorData <- function(concurrentComparatorData, connection, targetId) {
     sql <- paste0("
             SELECT exposure_id,
                    strata_id,
@@ -366,11 +332,20 @@ extractMatchedCohortToLocalSystem <- function(andromeda, connection, targetId) {
 
     DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
-                                           andromeda = andromeda,
+                                           andromeda = concurrentComparatorData,
                                            andromedaTableName = "matchedCohort",
                                            snakeCaseToCamelCase = TRUE)
 
-    return(andromeda)
+    return(concurrentComparatorData)
+}
+
+#' TODO: doc
+removeMatchedCohortEpisodesWithZeroTimeAtRisk <- function(concurrentComparatorData) {
+    concurrentComparatorData$matchedCohort <- concurrentComparatorData$matchedCohort %>%
+                                  collect() %>%
+                                  filter(timeAtRisk != 0.0)
+
+    return(concurrentComparatorData)
 }
 
 #' TODO: doc
@@ -385,8 +360,8 @@ getMatchedCohortDiagnostics <- function(matchedCohort) {
 }
 
 #' TODO: doc
-extractOutcomesToLocalSystem <- function(
-  andromeda,
+writeOutcomesToConcurrentComparatorData <- function(
+  concurrentComparatorData,
   connection,
   dbms,
   outcomeDatabaseSchema,
@@ -411,22 +386,22 @@ extractOutcomesToLocalSystem <- function(
 
      DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
-                                           andromeda = andromeda,
+                                           andromeda = concurrentComparatorData,
                                            andromedaTableName = "allOutcomes",
                                            snakeCaseToCamelCase = TRUE)
 
-    return(andromeda)
+    return(concurrentComparatorData)
 }
 
 #' TODO: doc
-saveIntermediateFile <- function(andromeda, intermediateFileNameStem, suffix = 1) {
+saveIntermediateFile <- function(concurrentComparatorData, intermediateFileNameStem, suffix = 1) {
   if (!is.null(intermediateFileNameStem)) {
     fileName <- paste0(intermediateFileNameStem, "_", suffix, ".zip")
-    Andromeda::saveAndromeda(andromeda, fileName = fileName)
+    Andromeda::saveAndromeda(concurrentComparatorData, fileName = fileName)
     ParallelLogger::logInfo("Matched cohorts saved to: ", fileName)
-    andromeda <- Andromeda::loadAndromeda(fileName = fileName)
+    concurrentComparatorData <- Andromeda::loadAndromeda(fileName = fileName)
   }
-  return(andromeda)
+  return(concurrentComparatorData)
 }
 
 getTruncatedOutcomeData <- function(matchedCohort, outcomes, cohortStartDate, studyEndDate = "") {
@@ -447,5 +422,31 @@ getTruncatedOutcomeData <- function(matchedCohort, outcomes, cohortStartDate, st
         outcomes <- outcomes %>% mutate(y = 1)
     }
 
-  return (outcomes)
+  return(outcomes)
+}
+
+#' TODO: doc
+writeMetaDataToConcurrentComparatorData <- function(
+    concurrentComparatorData,
+    targetId,
+    outcomeIds,
+    matchedCohortDiagnostics
+) {
+    cohortStatistics <- concurrentComparatorData$matchedCohort %>% group_by(exposureId) %>%
+        summarise(entries = n(),
+                  subjects = n_distinct(subjectId),
+                  kPtYrs = sum(timeAtRisk / 365.25 / 1000)) %>%
+        as_tibble()
+
+    attr(concurrentComparatorData, "metaData") <- list(
+        targetId = targetId,
+        outcomeIds = outcomeIds,
+        attrition = c(matchedCohortDiagnostics$zeroT, matchedCohortDiagnostics$zeroC),
+        cohortStatistics = cohortStatistics
+    )
+
+    class(concurrentComparatorData) <- "ConcurrentComparatorData"
+    attr(class(concurrentComparatorData), "package") <- "ConcurrentComparator"
+
+    return(concurrentComparatorData)
 }
