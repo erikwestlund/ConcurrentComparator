@@ -12,7 +12,8 @@ getAgeGroupIdForReferenceDateAndDateOfBirth(referenceDate, dateOfBirth)
 \item{dateOfBirth}{The date of birth of the person.}
 }
 \value{
-A numeric value corresponding to the bin number a person would fall in based on their age, with bins of 5 years starting at birth.
+A numeric value corresponding to the bin number a person would fall in based on their age, with bins of 5 years
+starting at birth.
 }
 \description{
 Gets an age group ID from a reference date and date of birth.

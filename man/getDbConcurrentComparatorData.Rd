@@ -32,9 +32,9 @@ instance. Requires read permissions to this database. On SQL
 Server, this should specify both the database and the schema,
 so for example 'cdm_instance.dbo'.}
 
-\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To
-.                                    emulate temp tables, provide a schema with write privileges where temp tables
-                                   can be created.}
+\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables.
+.                                    To emulate temp tables, provide a schema with write privileges where temp tables
+                                    can be created.}
 
 \item{targetId}{A unique identifier to define the target cohort. targetId is
 used to select the COHORT_DEFINITION_ID in the cohort-like table.}
@@ -62,8 +62,8 @@ COHORT_START_DATE, COHORT_END_DATE.}
 \item{outcomeDatabaseSchema}{The name of the database schema that is the location where the
 data used to define the outcome cohorts is available.}
 
-\item{outcomeTable}{The tablename that contains the outcome cohorts has the format of a COHORT table: COHORT_DEFINITION_ID,
-SUBJECT_ID, COHORT_START_DATE, COHORT_END_DATE.}
+\item{outcomeTable}{The tablename that contains the outcome cohorts has the format of a COHORT table:
+COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START_DATE, COHORT_END_DATE.}
 
 \item{timeAtRiskStart}{The time-at-risk start in days after subject index date.}
 

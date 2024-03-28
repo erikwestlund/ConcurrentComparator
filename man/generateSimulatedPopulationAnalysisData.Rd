@@ -32,20 +32,27 @@ generateSimulatedPopulationAnalysisData(
 
 \item{riskWindowAfterTargetExposureDays}{The number of days after target exposure to consider subject at risk.}
 
-\item{washoutPeriodDays}{The number of days after entering target cohort to consider subject "safe" and eligible for comparator cohort.}
+\item{washoutPeriodDays}{The number of days after entering target cohort to consider subject
+'"safe" and eligible for comparator cohort.}
 
-\item{highRiskGroupDefinition}{A list to pass to the `filterPersonsAgainstHighRiskGroupDefinition()` defining which subjects are considered high risk.}
+\item{highRiskGroupDefinition}{A list to pass to the `filterPersonsAgainstHighRiskGroupDefinition()`
+defining which subjects are considered high risk.}
 
-\item{matchHighRiskCriteria}{A value of `any` (has any high risk characteristic) or `all` (has all defined high risk characteristics) to
+\item{matchHighRiskCriteria}{A value of `any` (has any high risk characteristic) or `all` (has all
+defined high risk characteristics) to
 define how to match high risk subjects.}
 
-\item{lowRiskComparatorIncidence}{The incidence rate of the outcome in the low risk comparator group (those who do not match the high risk criteria).}
+\item{lowRiskComparatorIncidence}{The incidence rate of the outcome in the low risk comparator group
+(those who do not match the high risk criteria).}
 
-\item{lowRiskTargetIncidence}{The incidence rate of the outcome in the low risk target group (those who do not match the high risk criteria).}
+\item{lowRiskTargetIncidence}{The incidence rate of the outcome in the low risk target group (those
+who do not match the high risk criteria).}
 
-\item{highRiskComparatorIncidence}{The incidence rate of the outcome in the high risk comparator group (those who match the high risk criteria).}
+\item{highRiskComparatorIncidence}{The incidence rate of the outcome in the high risk comparator group
+(those who match the high risk criteria).}
 
-\item{highRiskTargetIncidence}{The incidence rate of the outcome in the high risk target group (those who match the high risk criteria).}
+\item{highRiskTargetIncidence}{The incidence rate of the outcome in the high risk target group (those
+who match the high risk criteria).}
 
 \item{studyStartDate}{The start date of the study in the format 'YYYY-MM-DD'.}
 

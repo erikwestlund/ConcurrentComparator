@@ -23,53 +23,69 @@ generateSimulatedCohortTable(
 )
 }
 \arguments{
-\item{persons}{A tibble with a format similar to the `persons` table in an OHDSI CDM instance.
-The tibble must include the following columns: `person_id`, `birth_datetime`,
+\item{persons}{A tibble with a format similar to the `persons` table in an OHDSI
+CDM instance.
+The tibble must include the following columns: `person_id`,
+`birth_datetime`,
 `gender_concept_id`, `race_concept_id`, and `ethnicity_concept_id`.}
 
-\item{targetId}{The ID of the target cohort that received the vaccine. This ID corresponds to the ID of
+\item{targetId}{The ID of the target cohort that received the vaccine. This ID
+corresponds to the ID of
 the cohort in the JSON cohort definition file.}
 
-\item{outcomeIds}{A vector of IDs of the adverse event outcomes that are being studied. Each ID corresponds to the ID of
-the cohort in the JSON cohort definition file. TODO: Support multiple outcomes}
+\item{outcomeIds}{A vector of IDs of the adverse event outcomes that are being
+studied. Each ID corresponds to the ID of
+the cohort in the JSON cohort definition file.
+TODO: Support multiple outcomes}
 
-\item{proportionSecondShot}{The proportion of the target cohort that received a second shot of the vaccine.}
+\item{proportionSecondShot}{The proportion of the target cohort that received a second shot of
+the vaccine.}
 
-\item{riskWindowAfterTargetExposureDays}{The number of days after the target cohort received the vaccine that a person is considered
+\item{riskWindowAfterTargetExposureDays}{The number of days after the target cohort received the vaccine that
+a person is considered
 at risk of the outcome.}
 
-\item{washoutPeriodDays}{The number of days after the target cohort received the vaccine after which they are considered
-not to be at risk of the adverse event outcome being caused by the vaccine exposure.}
+\item{washoutPeriodDays}{The number of days after the target cohort received the vaccine
+after which they are considered not to be at risk of the adverse
+event outcome being caused by the vaccine exposure.}
 
-\item{highRiskGroupDefinition}{A list of items that define the high risk group. Each item is a list with the following elements:
-- var: The name of the variable in the `persons` that is used to define the high risk group.
-       For example, "race_concept_id"
-- operator: The operator to use to define the high risk group. This can be one of the following:
+\item{highRiskGroupDefinition}{A list of items that define the high risk group. Each item is a list
+with the following elements:
+- var: The name of the variable in the `persons` that is used to
+       define the high risk group.
+       For example: "race_concept_id"
+- operator: The operator to use to define the high risk group. This
+  can be one of the following:
             "in": The variable must be in a list of values.
-            "==": The variable must be equal to a value.
-            TODO:
-            >=
+            "between": The variable must be between two values,
+                       inclusive of the endpoints.
+            "=="
+            ">="
             >
             <=
             <
-            between
 - val: The value to use to define the high risk group
-       For example, "8515" for "Asian"
-       TODO add extra operators}
+       For example, "8515" for "Asian"}
 
-\item{lowRiskTargetIncidence}{The proportion of the low risk group to generate adverse events in the risk period.}
+\item{lowRiskTargetIncidence}{The proportion of the low risk group to generate adverse events in
+the risk period.}
 
-\item{lowRiskComparatorIncidence}{The proportion of the low risk group to generate adverse events in the safe period.}
+\item{lowRiskComparatorIncidence}{The proportion of the low risk group to generate adverse events in
+the safe period.}
 
-\item{highRiskTargetIncidence}{The proportion of the high risk group to generate adverse events in the risk period.}
+\item{highRiskTargetIncidence}{The proportion of the high risk group to generate adverse events in
+the risk period.}
 
-\item{highRiskComparatorIncidence}{The proportion of the high risk group to generate adverse events in the safe period.}
+\item{highRiskComparatorIncidence}{The proportion of the high risk group to generate adverse events in
+the safe period.}
 
 \item{studyEndDate}{The date on which the study ends.}
 
-\item{targetDaysEligibleBeforeStudyEndDate}{The number of days before the study end date that a person is eligible to be in the target cohort.
-For example, if the study end date is 2021-06-30 and this value is 500, then the target cohort
-can include people who received the vaccine between 2020-02-11 and 2021-06-30.}
+\item{targetDaysEligibleBeforeStudyEndDate}{The number of days before the study end date that a person is
+eligible to be in the target cohort. For example, if the study end
+date is 2021-06-30 and this value is 500, then the target cohort
+can include people who received the vaccine between 2020-02-11 and
+2021-06-30.}
 }
 \value{
 A tibble with the following columns:
@@ -86,6 +102,10 @@ A tibble with the following columns:
                           cohort (in the format YYYY-MM-DD)
 }
 \description{
+Generates a simulated cohort table in the format produced by the
+`generateCohortSet` function in the OHDSI CohortGenerator package.
+}
+\details{
 This function generates a simulated cohort table. The table includes records for each person in the
 `persons` that are eligible for the target cohort. The target cohort is defined as the set of
 people who received the vaccine. People are eligible to be in the target cohort up to two times. For example,
@@ -93,9 +113,10 @@ once for their first shot in a vaccine series and once for their second shot. Th
 adverse event outcomes for a subset of the target cohort and its corresponding comparator cohort.
 The comparator cohort is constructed of members of the target cohort in the period of time
 after the washout period concludes after a target cohort member receives the vaccine. There are no records for
-the comparator cohort in the generated table since it does not correspond to any observed treatment or outcome, but rather
-a window of time when members of the target cohort are no longer considered potentially at a higher risk for experiencing
-adverse events from the vaccine. This functions allows for the specification of a low-risk and high-risk group of people who
-are eligible for the target cohort. Adverse event outcomes are generated in proportion to the provided parameters for the low-
-and high-risk groups during both the post-vaccine risk period and the safe period after the washout window concludes.
+the comparator cohort in the generated table since it does not correspond to any observed treatment or outcome, but
+rather a window of time when members of the target cohort are no longer considered potentially at a higher risk for
+experiencing adverse events from the vaccine. This functions allows for the specification of a low-risk and high-risk
+group of people who are eligible for the target cohort. Adverse event outcomes are generated in proportion to the
+provided parameters for the low- and high-risk groups during both the post-vaccine risk period and the safe period
+after the washout window concludes.
 }

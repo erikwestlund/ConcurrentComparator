@@ -6,9 +6,9 @@
 \alias{ConcurrentComparatorData}
 \title{Concurrent Comparator Data}
 \description{
-`ConcurrentComparatorData` is an S4 class that inherits from [Andromeda][Andromeda::Andromeda]. It contains information on the cohorts, their
-outcomes, and baseline covariates. Information about multiple outcomes can be captured at once for
-efficiency reasons.
+`ConcurrentComparatorData` is an S4 class that inherits from [Andromeda][Andromeda::Andromeda]. It contains
+information on the cohorts, their outcomes, and baseline covariates. Information about multiple outcomes can be
+captured at once for efficiency reasons.
 
 A `ConcurrentComparatorData` is typically created using [getDbConcurrentComparatorData()], can only be saved using
 [saveConcurrentComparatorData()], and loaded using [loadConcurrentComparatorData()].

@@ -19,12 +19,14 @@ generateTargetCohortFromPersons(
 
 \item{targetId}{The ID of the target cohort definition.}
 
-\item{washoutPeriodDays}{The number of days after entering the target cohort until the person is considered no longer
+\item{washoutPeriodDays}{The number of days after entering the target cohort until the person is
+considered no longer
 at risk of adverse events caused by exposure to the vaccine.}
 
 \item{studyEndDate}{The date the study ended in YYYY-MM-DD format.}
 
-\item{targetDaysEligibleBeforeStudyEndDate}{The number of days before the study end date that a person is eligible to enter the target cohort.}
+\item{targetDaysEligibleBeforeStudyEndDate}{The number of days before the study end date that a person is eligible
+to enter the target cohort.}
 
 \item{proportionSecondShot}{The proportion of people in the target cohort who receive a second shot.}
 }
