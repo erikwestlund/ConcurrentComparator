@@ -24,5 +24,5 @@ A data frame with the following columns:
 - ethnicity_concept_id: The OMOP ethnicity concept ID.
 }
 \description{
-TODO
+Gets unique strata from a cohort and persond data frame.
 }
