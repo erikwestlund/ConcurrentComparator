@@ -1,8 +1,7 @@
 library(RSQLite)
 library(tibble)
 
-
-# Setup defaults ----------------------------------------------------------
+# Setup testing defaults ------------------------------------------------------
 
 dbFile <- "testDb.sqlite"
 dbms <- "sqlite"
@@ -84,10 +83,7 @@ defaultCohort <- generateSimulatedCohortTable(
 )
 createCohortTable(defaultCohort, cdmDatabaseSchema, cohortTable, dbFile)
 
-observationPeriods <- generateSimulatedObservationPeriodTable(
-    cohort = defaultCohort,
-    riskWindowAfterTargetExposureDays = defaultRiskWindowAfterTargetExposureDays
-)
+observationPeriods <- generateSimulatedObservationPeriodTable(defaultCohort)
 createObservationPeriodTable(observationPeriods, cdmDatabaseSchema, observationPeriodTable, dbFile)
 
 # Scratch -----------------------------------------------------------------
@@ -98,8 +94,8 @@ sqliteConnectionDetails <- DatabaseConnector::createConnectionDetails(
 )
 sqliteConnection <- DatabaseConnector::connect(sqliteConnectionDetails)
 
-test_that("CohortExtraction.sql yields target table with correct number of rows ", {
-    # This runs CohortExtraction.sql on the SQLite database.
+# This runs CohortExtraction.sql on the SQLite database.
+test_that("CohortExtraction.sql yields target table with correct number of rows", {
     writeMatchedCohortsToScratchDatabase(sqliteConnection,
                                          dbms,
                                          cdmDatabaseSchema,
@@ -109,16 +105,12 @@ test_that("CohortExtraction.sql yields target table with correct number of rows 
                                          defaultWashoutPeriodDays,
                                          defaultTargetId)
 
+    # Counts rows
     targetTable <- DatabaseConnector::querySql(sqliteConnection, "SELECT * FROM temp.target")
 
     expect_equal(
         nrow(targetTable),
-        defaultN * (1+defaultPercentSecondShot) + # Target
-        defaultN + # Comparator
-        defaultN * defaultHighRiskComparatorIncidence + # High risk comparator
-        defaultN * defaultHighRiskTargetIncidence + # High risk target
-        defaultN * defaultLowRiskTargetIncidence + # Low risk target
-        defaultN * defaultLowRiskComparatorIncidence # Low risk comparator
+        defaultN * (1+defaultPercentSecondShot)
 
     )
 })
