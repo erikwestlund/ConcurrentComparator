@@ -305,8 +305,6 @@ writeMatchedCohortsToScratchDatabase <- function(
 
     sql <- patchSql(sql, dbms)
 
-    cat(sql)
-
     DatabaseConnector::executeSql(connection = connection, sql = sql)
 }
 
