@@ -128,6 +128,7 @@ getDbConcurrentComparatorData <- function(connectionDetails,
 
     ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId, ".")
     writeMatchedCohortsToScratchDatabase(
+      connection,
       connectionDetails$dbms,
       cdmDatabaseSchema,
       exposureDatabaseSchema,
@@ -280,7 +281,10 @@ initializeDatabaseConnection <- function(connectionDetails) {
 
 
 #' TODO: document once working
-writeMatchedCohortsToScratchDatabase <- function(dbms,
+#' @export
+writeMatchedCohortsToScratchDatabase <- function(
+                              connection,
+                              dbms,
                               cdmDatabaseSchema,
                               exposureDatabaseSchema,
                               exposureTable,
@@ -299,6 +303,9 @@ writeMatchedCohortsToScratchDatabase <- function(dbms,
                                              cohort_ids = c(targetId),
                                              warnOnMissingParameters = TRUE)
 
+    sql <- patchSql(sql, dbms)
+
+    cat(sql)
 
     DatabaseConnector::executeSql(connection = connection, sql = sql)
 }
@@ -390,6 +397,8 @@ writeOutcomesToConcurrentComparatorData <- function(
                                                  days_to_obs_end = timeAtRiskEnd,
                                                  warnOnMissingParameters = TRUE)
 
+    sql <- patchSql(sql, dbms)
+
      DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
                                            andromeda = concurrentComparatorData,
@@ -455,4 +464,18 @@ writeMetaDataToConcurrentComparatorData <- function(
     attr(class(concurrentComparatorData), "package") <- "ConcurrentComparator"
 
     return(concurrentComparatorData)
+}
+
+#' TODO: doc
+#' Used only to translate sqlite
+patchSql <- function(sql, dbms) {
+    if (dbms == "sqlite") {
+        # SQLite does not support floor; round instead
+        sql <- gsub("floor\\(", "round\\(", sql)
+
+        # SQLite does not support extract(year; use strftime('%Y', VAR) instead
+        sql <- gsub("extract\\(year from", "strftime('%Y',", sql)
+    }
+
+    sql
 }

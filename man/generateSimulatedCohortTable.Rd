@@ -12,7 +12,7 @@ generateSimulatedCohortTable(
   proportionSecondShot = 0.65,
   riskWindowAfterTargetExposureDays = 21,
   washoutPeriodDays = 22,
-  highRiskGroupDefinition = c(),
+  highRiskGroupDefinition = list(),
   matchHighRiskCriteria = "all",
   lowRiskTargetIncidence = 1e-04,
   lowRiskComparatorIncidence = 1e-04,

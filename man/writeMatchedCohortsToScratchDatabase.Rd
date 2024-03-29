@@ -5,7 +5,8 @@
 \title{TODO: document once working}
 \usage{
 writeMatchedCohortsToScratchDatabase(
-  connectionDetails,
+  connection,
+  dbms,
   cdmDatabaseSchema,
   exposureDatabaseSchema,
   exposureTable,

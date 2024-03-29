@@ -1,3 +1,7 @@
+-- noinspection SqlDialectInspectionForFile
+
+-- noinspection SqlNoDataSourceInspectionForFile
+
 /************************************************************************
 @file CohortExtraction.sql
 
@@ -48,7 +52,7 @@ create table #target as
     on c1.subject_id = op1.person_id
     and c1.cohort_start_date >= op1.observation_period_start_date
     and c1.cohort_start_date <= op1.observation_period_end_date
-    where cohort_definition_id in (@cohort_ids)
+    where c1.cohort_definition_id in (@cohort_ids)
 ;
 
 

@@ -4,7 +4,7 @@
 \alias{generateSimulatedPersonsData}
 \title{Generate a simulated persons table consistent with the OMOP CDM.}
 \usage{
-generateSimulatedPersonsData(n = 1000, studyEndDate = "2021-06-01")
+generateSimulatedPersonsData(n = 1000, studyEndDate = "2021-06-30")
 }
 \arguments{
 \item{n}{The number of persons to generate.}

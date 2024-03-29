@@ -4,7 +4,11 @@
 \alias{saveIntermediateFile}
 \title{TODO: doc}
 \usage{
-saveIntermediateFile(andromeda, intermediateFileNameStem, suffix = 1)
+saveIntermediateFile(
+  concurrentComparatorData,
+  intermediateFileNameStem,
+  suffix = 1
+)
 }
 \description{
 TODO: doc
