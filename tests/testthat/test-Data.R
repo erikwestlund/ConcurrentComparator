@@ -31,24 +31,39 @@ test_that("CohortExtraction.sql translates to supported SQL DMBS dialects", {
 })
 
 test_that("CohortExtraction.sql yields temporary tables with correct number of rows", {
-    writeMatchedCohortsToScratchDatabase(sqliteConnection,
-                                         dbms,
-                                         cdmDatabaseSchema,
-                                         cdmDatabaseSchema,
-                                         cohortTable,
-                                         defaultRiskWindowAfterTargetExposureDays,
-                                         defaultWashoutPeriodDays,
-                                         defaultTargetId)
+    n <- 1000
+    proportionSecondShot <- 1
 
-    expect_equal(
-        nrow(DatabaseConnector::querySql(sqliteConnection, "SELECT * FROM temp.target")),
-        defaultN * (1+defaultPercentSecondShot)
+    testData <- scaffoldTestData(
+        n = defaultN,
+        proportionSecondShot = proportionSecondShot
     )
 
+    # Target
     expect_equal(
-        nrow(DatabaseConnector::querySql(sqliteConnection, "SELECT * FROM temp.comparator")),
-        defaultN
+        nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.target")),
+        n * (1+proportionSecondShot)
     )
+
+    # Comparator
+    expect_equal(
+        nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.comparator")),
+        n
+    )
+
+    # Strata -- should match unique combinations from cohort
+    expect_equal(
+        nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.strata")),
+        nrow(testData$data$strata)
+    )
+
+    # Matched Strata
+    expect_equal(
+        nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.matched_strata")),
+        nrow(testData$data$matchedStrata)
+    )
+
+
 
     # Test rest of tables
 })

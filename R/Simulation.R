@@ -346,7 +346,7 @@ getPersonLevelDataFromCohortAndStrata <- function(cohort, cohortType, strata, pe
 
     cohort %>%
         inner_join(persons, by = c("subject_id" = "person_id")) %>%
-        mutate(age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(cohort_start_date, birth_datetime)) %>%
+        mutate(age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(cohort_start_date, year_of_birth)) %>%
         select(cohort_definition_id, subject_id, cohort_start_date, cohort_end_date, age_group_id, gender_concept_id,
                race_concept_id, ethnicity_concept_id) %>%
         inner_join(strata, by = c("cohort_definition_id", "cohort_start_date", "age_group_id", "gender_concept_id",
@@ -382,7 +382,7 @@ generateStrataFromCohort <- function(cohort, persons) {
             by = c("subject_id" = "person_id")
         ) %>%
         mutate(
-            age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(cohort_start_date, birth_datetime)
+            age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(cohort_start_date, year_of_birth)
         ) %>%
         select(cohort_definition_id, cohort_start_date, age_group_id, gender_concept_id, race_concept_id,
                ethnicity_concept_id) %>%
@@ -438,10 +438,14 @@ generateMatchedStrataForComparatorCohort <- function(strata, comparatorCohort, p
 #'
 #' @return
 #' A numeric value corresponding to the bin number a person would fall in based on their age, with bins of 5 years
-#' starting at birth.
-getAgeGroupIdForReferenceDateAndDateOfBirth <- function(referenceDate, dateOfBirth) {
-    cut(as.numeric(difftime(as.Date(referenceDate), as.Date(dateOfBirth), units = 'days')) / 365.25, seq(0, 100, 5),
-        labels=FALSE)
+#' starting at birth. Use formulation `round((year(referenceDate) - year(dateOfBirth)) / 5)` to get the age group ID,
+#' which is what is used in the CohortExtraction.sql file, with exception of `floor` changing to `round` for SQLite
+#' compatibility
+getAgeGroupIdForReferenceDateAndDateOfBirth <- function(referenceDate, yearOfBirth) {
+    round((as.numeric(format(referenceDate, '%Y')) - yearOfBirth) / 5)
+
+    # cut(as.numeric(difftime(as.Date(referenceDate), as.Date(dateOfBirth), units = 'days')) / 365.25, seq(0, 100, 5),
+    #     labels=FALSE)
 }
 
 #' Generate a target cohort from a simulated cohort table in the same format as
@@ -523,7 +527,7 @@ generateComparatorCohortFromSimulatedTargetCohortTable <- function(
 #' Void.
 summarizeSimulatedTestData <- function(persons, studyEndDate = '2021-06-01') {
     data <- persons %>%
-        mutate(age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(studyEndDate, birth_datetime))
+        mutate(age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(studyEndDate, year_of_birth))
 
     for(c in c('age_group_id', 'gender_concept_id', 'race_concept_id', 'ethnicity_concept_id')) {
         data %>% group_by(across(all_of(c))) %>%
@@ -566,7 +570,7 @@ filterPersonsAgainstHighRiskGroupDefinition <- function(persons, exposureCohort,
     data <- persons %>%
         left_join(exposureCohort, by = c('person_id' = 'subject_id')) %>%
         mutate(
-            age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(cohort_start_date, birth_datetime)
+            age_group_id = getAgeGroupIdForReferenceDateAndDateOfBirth(cohort_start_date, year_of_birth)
         )
 
     highRiskPersonIds <- c()

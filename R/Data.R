@@ -302,8 +302,6 @@ translateCohortExtractionSql <- function(dbms,
 
     sql <- patchSql(sql, dbms)
 
-    cat(sql)
-
     return(sql)
 }
 
@@ -492,8 +490,8 @@ patchSql <- function(sql, dbms) {
         # SQLite does not support floor; round instead
         sql <- gsub("floor\\(", "round\\(", sql)
 
-        # SQLite does not support extract(year; use strftime('%Y', VAR) instead
-        sql <- gsub("extract\\(year from", "strftime('%Y',", sql)
+        # SQLite does not support extract(year from VAR); use strftime('%Y', DATETIME(VAR, 'unixepoch', (0)||' days')) instead
+        sql <- gsub("extract\\(year from (.*?)\\)", "strftime('%Y', DATETIME(\\1, 'unixepoch'))", sql)
     }
 
     sql
