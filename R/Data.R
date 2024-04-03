@@ -302,6 +302,8 @@ translateCohortExtractionSql <- function(dbms,
 
     sql <- patchSql(sql, dbms)
 
+    cat(sql)
+
     return(sql)
 }
 

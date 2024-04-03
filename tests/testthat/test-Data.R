@@ -11,16 +11,14 @@ test_that("CohortExtraction.sql translates to supported SQL DMBS dialects", {
         "bigquery",
         "sqlite",
         "sqlite extended",
-        # "spark",
+        # "spark", # spark errss
         "snowflake",
         "synapse",
         "duckdb"
     )
 
-    expect_no_error(translateCohortExtractionSql)
-
     for (dbms in supportedDbms) {
-        translateCohortExtractionSql(
+        expect_no_error(translateCohortExtractionSql(
             dbms,
             'cdmDatabaseSchema',
             'cohortDatabaseSchema',
@@ -28,12 +26,11 @@ test_that("CohortExtraction.sql translates to supported SQL DMBS dialects", {
             'timeAtRiskEnd',
             'washoutTime',
             'targetId'
-            )
+            ))
     }
-
 })
 
-test_that("CohortExtraction.sql yields target table with correct number of rows", {
+test_that("CohortExtraction.sql yields temporary tables with correct number of rows", {
     writeMatchedCohortsToScratchDatabase(sqliteConnection,
                                          dbms,
                                          cdmDatabaseSchema,
@@ -43,12 +40,19 @@ test_that("CohortExtraction.sql yields target table with correct number of rows"
                                          defaultWashoutPeriodDays,
                                          defaultTargetId)
 
-    # Counts rows
-    targetTable <- DatabaseConnector::querySql(sqliteConnection, "SELECT * FROM temp.target")
+    expect_equal(
+        nrow(DatabaseConnector::querySql(sqliteConnection, "SELECT * FROM temp.target")),
+        defaultN * (1+defaultPercentSecondShot)
+    )
 
     expect_equal(
-        nrow(targetTable),
-        defaultN * (1+defaultPercentSecondShot)
-
+        nrow(DatabaseConnector::querySql(sqliteConnection, "SELECT * FROM temp.comparator")),
+        defaultN
     )
+
+    # Test rest of tables
 })
+
+# TODO:
+# Test correct results with default parameters
+# Then may need to refactor some to make it make sense with non-default params

@@ -62,9 +62,17 @@ createObservationPeriodTable <- function(observationPeriods, schema, observation
 
 createEmptySQLiteDb(dbFile)
 
-defaultPersons <- generateSimulatedPersonsData(defaultN)
+# Note: For the testing suite to work correctly with SQLite, we need to convert
+# the dates to unix epochs. This is because the SQLite translation layer
+# assumes unix epochs for dates.
+
+defaultPersons <- generateSimulatedPersonsData(defaultN) %>%
+    mutate(
+        birth_datetime = as.numeric(as.POSIXct(birth_datetime, format="%Y-%m-%d")),
+    )
 createPersonsTable(defaultPersons, cdmDatabaseSchema, personsTable, dbFile)
 
+# Create the cohort and derived observation period tables before mutating dates
 defaultCohort <- generateSimulatedCohortTable(
     persons = defaultPersons,
     targetId = defaultTargetId,
@@ -81,9 +89,23 @@ defaultCohort <- generateSimulatedCohortTable(
     studyEndDate = defaultStudyEndDate,
     targetDaysEligibleBeforeStudyEndDate = defaultTargetDaysEligibleBeforeStudyEndDate
 )
-createCohortTable(defaultCohort, cdmDatabaseSchema, cohortTable, dbFile)
+observationPeriods <- generateSimulatedObservationPeriodTable(defaultCohort, defaultWashoutPeriodDays)
 
-observationPeriods <- generateSimulatedObservationPeriodTable(defaultCohort)
+# Now, mutate the dates and store in SQLite
+defaultCohort <- defaultCohort %>%
+    mutate(
+        cohort_start_date = as.numeric(as.POSIXct(cohort_start_date, format="%Y-%m-%d")),
+        cohort_end_date = as.numeric(as.POSIXct(cohort_end_date, format="%Y-%m-%d"))
+    )
+
+observationPeriods <- observationPeriods %>%
+    mutate(
+        observation_period_start_date = as.numeric(as.POSIXct(observation_period_start_date, format="%Y-%m-%d")),
+        observation_period_end_date = as.numeric(as.POSIXct(observation_period_end_date, format="%Y-%m-%d"))
+    )
+
+# Store these dataframes as tables
+createCohortTable(defaultCohort, cdmDatabaseSchema, cohortTable, dbFile)
 createObservationPeriodTable(observationPeriods, cdmDatabaseSchema, observationPeriodTable, dbFile)
 
 
@@ -94,6 +116,17 @@ sqliteConnectionDetails <- DatabaseConnector::createConnectionDetails(
     server = dbFile
 )
 sqliteConnection <- DatabaseConnector::connect(sqliteConnectionDetails)
+
+
+writeMatchedCohortsToScratchDatabase(sqliteConnection,
+                                     dbms,
+                                     cdmDatabaseSchema,
+                                     cdmDatabaseSchema,
+                                     cohortTable,
+                                     defaultRiskWindowAfterTargetExposureDays,
+                                     defaultWashoutPeriodDays,
+                                     defaultTargetId)
+t <- DatabaseConnector::querySql(sqliteConnection, "SELECT * FROM temp.comparator")
 
 
 # Teardown ----------------------------------------------------------------
