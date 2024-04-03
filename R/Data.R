@@ -279,31 +279,50 @@ initializeDatabaseConnection <- function(connectionDetails) {
     return(connection)
 }
 
-
-#' TODO: document once working
+#' TODO: document
 #' @export
-writeMatchedCohortsToScratchDatabase <- function(
-                              connection,
-                              dbms,
-                              cdmDatabaseSchema,
-                              exposureDatabaseSchema,
-                              exposureTable,
-                              timeAtRiskEnd,
-                              washoutTime,
-                              targetId) {
+translateCohortExtractionSql <- function(dbms,
+                                         cdmDatabaseSchema,
+                                         cohortDatabaseSchema,
+                                         cohortTable,
+                                         timeAtRiskEnd,
+                                         washoutTime,
+                                         targetId) {
 
     sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CohortExtraction.sql",
                                              packageName = "ConcurrentComparator",
                                              dbms = dbms,
                                              cdm_database_schema = cdmDatabaseSchema,
-                                             cohort_database_schema = exposureDatabaseSchema,
-                                             cohort_table = exposureTable,
+                                             cohort_database_schema = cohortDatabaseSchema,
+                                             cohort_table = cohortTable,
                                              time_at_risk = timeAtRiskEnd,
                                              delta_time = washoutTime,
                                              cohort_ids = c(targetId),
                                              warnOnMissingParameters = TRUE)
 
     sql <- patchSql(sql, dbms)
+
+    return(sql)
+}
+
+#' TODO: document once working
+#' @export
+writeMatchedCohortsToScratchDatabase <- function(connection,
+                                                 dbms,
+                                                 cdmDatabaseSchema,
+                                                 exposureDatabaseSchema,
+                                                 exposureTable,
+                                                 timeAtRiskEnd,
+                                                 washoutTime,
+                                                 targetId) {
+
+    sql <- translateCohortExtractionSql(dbms,
+                                        cdmDatabaseSchema,
+                                        exposureDatabaseSchema,
+                                        exposureTable,
+                                        timeAtRiskEnd,
+                                        washoutTime,
+                                        targetId)
 
     DatabaseConnector::executeSql(connection = connection, sql = sql)
 }
