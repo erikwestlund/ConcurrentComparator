@@ -89,7 +89,7 @@ test_that("getDbConcurrentComparatorData yields data objects with the expected n
     }
 })
 
-test_that("Two people who get shot the washout period days apart end up in same Strata.", {
+test_that("Two people who get shot washout period days apart end up in same Strata.", {
     scenarios <- list(
         list(
             timeAtRiskStartDays = 0,
@@ -122,6 +122,41 @@ test_that("Two people who get shot the washout period days apart end up in same 
         )
     }
 })
+
+
+test_that("Outcome on day of shot does not show up when daysToStart > 0", {
+    testData <- scaffoldN2TestData(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22,
+            outcomes = list(
+                list(outcomeId = 668, daysAfterFirstShot = 0)
+            )
+        )
+
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
+        0
+    )
+})
+
+
+test_that("Outcome on day after shot shows up when daysToStart = 1", {
+    testData <- scaffoldN2TestData(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22,
+            outcomes = list(
+                list(outcomeId = 668, daysAfterFirstShot = 1)
+            )
+        )
+
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
+        1
+    )
+})
+
 
 # TODO:
 # Test correct results with default parameters
