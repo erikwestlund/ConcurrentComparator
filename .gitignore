@@ -5,3 +5,6 @@
 .idea
 
 extras
+tests/testthat/errorReportSql.txt
+tests/testthat/testDb.sqlite
+tests/testthat/testhat-problems.rds
