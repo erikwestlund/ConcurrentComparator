@@ -4,7 +4,7 @@
 \alias{getAgeGroupIdForReferenceDateAndDateOfBirth}
 \title{Gets an age group ID from a reference date and date of birth.}
 \usage{
-getAgeGroupIdForReferenceDateAndDateOfBirth(referenceDate, dateOfBirth)
+getAgeGroupIdForReferenceDateAndDateOfBirth(referenceDate, yearOfBirth)
 }
 \arguments{
 \item{referenceDate}{The date to use as the reference date for calculating age.}
@@ -13,7 +13,9 @@ getAgeGroupIdForReferenceDateAndDateOfBirth(referenceDate, dateOfBirth)
 }
 \value{
 A numeric value corresponding to the bin number a person would fall in based on their age, with bins of 5 years
-starting at birth.
+starting at birth. Use formulation `round((year(referenceDate) - year(dateOfBirth)) / 5)` to get the age group ID,
+which is what is used in the CohortExtraction.sql file, with exception of `floor` changing to `round` for SQLite
+compatibility
 }
 \description{
 Gets an age group ID from a reference date and date of birth.

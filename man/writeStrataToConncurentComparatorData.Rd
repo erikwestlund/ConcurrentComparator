@@ -8,6 +8,7 @@ Takes andromeda object and extracts strata to local system and returns it}
 writeStrataToConncurentComparatorData(
   concurrentComparatorData,
   connection,
+  dbms,
   targetId
 )
 }

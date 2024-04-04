@@ -8,6 +8,7 @@ Takes andromeda object and extracts matched to local system and returns it}
 writeMatchedCohortToConcurrentComparatorData(
   concurrentComparatorData,
   connection,
+  dbms,
   targetId
 )
 }

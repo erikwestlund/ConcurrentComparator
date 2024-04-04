@@ -9,7 +9,7 @@ generateOutcomesCohortFromTargetCohort(
   includePersonIds = c(),
   outcomeId,
   outcomeRate,
-  riskWindowAfterTargetExposureDays
+  timeAtRiskEndDays
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ persons in the target cohort will be included.}
 \item{outcomeRate}{The proportion of persons in the comparator cohort who will experience the
 outcome.}
 
-\item{riskWindowAfterTargetExposureDays}{The number of days after the target exposure that the adverse event outcome
+\item{timeAtRiskEndDays}{The number of days after the target exposure that the adverse event outcome
 can occur.}
 }
 \value{

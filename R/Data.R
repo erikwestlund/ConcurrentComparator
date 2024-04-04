@@ -87,21 +87,21 @@ setClass("ConcurrentComparatorData", contains = "Andromeda")
 #' @export
 
 getDbConcurrentComparatorData <- function(connectionDetails,
-                                  cdmDatabaseSchema,
-                                  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
-                                  targetId = 1,
-                                  outcomeIds,
-                                  overwriteComparators = FALSE,
-                                  studyStartDate = "",
-                                  studyEndDate = "",
-                                  exposureDatabaseSchema = cdmDatabaseSchema,
-                                  exposureTable,
-                                  outcomeDatabaseSchema = cdmDatabaseSchema,
-                                  outcomeTable,
-                                  timeAtRiskStart,
-                                  timeAtRiskEnd,
-                                  washoutTime = timeAtRiskEnd + 1,
-                                  intermediateFileNameStem = NULL) {
+                                          cdmDatabaseSchema,
+                                          tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+                                          targetId = 1,
+                                          outcomeIds,
+                                          overwriteComparators = FALSE,
+                                          studyStartDate = "",
+                                          studyEndDate = "",
+                                          exposureDatabaseSchema = cdmDatabaseSchema,
+                                          exposureTable,
+                                          outcomeDatabaseSchema = cdmDatabaseSchema,
+                                          outcomeTable,
+                                          timeAtRiskStart,
+                                          timeAtRiskEnd,
+                                          washoutTime = timeAtRiskEnd + 1,
+                                          intermediateFileNameStem = NULL) {
 
     errorMessages <- checkmate::makeAssertCollection()
     checkmate::assertClass(connectionDetails, "ConnectionDetails", add = errorMessages)
@@ -142,8 +142,8 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     concurrentComparatorData <- initializeConcurrentComparatorData()
 
     ParallelLogger::logInfo("Extracting strata and matched cohort data.")
-    concurrentComparatorData <- writeStrataToConncurentComparatorData(concurrentComparatorData, connection, targetId)
-    concurrentComparatorData <- writeMatchedCohortToConcurrentComparatorData(concurrentComparatorData, connection, targetId)
+    concurrentComparatorData <- writeStrataToConncurentComparatorData(concurrentComparatorData, connection, connectionDetails$dbms, targetId)
+    concurrentComparatorData <- writeMatchedCohortToConcurrentComparatorData(concurrentComparatorData, connection, connectionDetails$dbms, targetId)
 
     ParallelLogger::logInfo("Removing subjects with 0 time-at-risk.")
     matchedCohortDiagnostics <- getMatchedCohortDiagnostics(concurrentComparatorData$matchedCohort)
@@ -275,7 +275,7 @@ loadConcurrentComparatorData <- function(file) {
 #' TODO:
 initializeDatabaseConnection <- function(connectionDetails) {
     connection <- DatabaseConnector::connect(connectionDetails)
-    on.exit(DatabaseConnector::disconnect(connection))
+    # withr::defer(DatabaseConnector::disconnect(connection))
     return(connection)
 }
 
@@ -315,7 +315,6 @@ writeMatchedCohortsToScratchDatabase <- function(connection,
                                                  timeAtRiskEnd,
                                                  washoutTime,
                                                  targetId) {
-
     sql <- translateCohortExtractionSql(dbms,
                                         cdmDatabaseSchema,
                                         exposureDatabaseSchema,
@@ -336,8 +335,12 @@ initializeConcurrentComparatorData <- function() {
 
 #' TODO: doc
 #' Takes andromeda object and extracts strata to local system and returns it
-writeStrataToConncurentComparatorData <- function(concurrentComparatorData, connection, targetId) {
-    sql <- paste0("SELECT * FROM #strata WHERE cohort_definition_id = ", targetId)
+writeStrataToConncurentComparatorData <- function(concurrentComparatorData, connection, dbms, targetId) {
+    sql <- SqlRender::render(
+      "SELECT * FROM #strata WHERE cohort_definition_id = @target_id",
+      target_id = targetId
+    )
+    sql <- SqlRender::translate(sql, dbms)
 
     DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
@@ -350,15 +353,18 @@ writeStrataToConncurentComparatorData <- function(concurrentComparatorData, conn
 
 #' TODO: doc
 #' Takes andromeda object and extracts matched to local system and returns it
-writeMatchedCohortToConcurrentComparatorData <- function(concurrentComparatorData, connection, targetId) {
-    sql <- paste0("
-            SELECT exposure_id,
-                   strata_id,
-                   subject_id,
-                   cohort_start_date,
-                   DATEDIFF(DAY, cohort_start_date, cohort_end_date) AS time_at_risk
-            FROM #matched_cohort
-            WHERE cohort_definition_id = ", targetId)
+writeMatchedCohortToConcurrentComparatorData <- function(concurrentComparatorData, connection, dbms, targetId) {
+    sql <- SqlRender::render(
+    "SELECT exposure_id,
+           strata_id,
+           subject_id,
+           cohort_start_date,
+           DATEDIFF(DAY, cohort_start_date, cohort_end_date) AS time_at_risk
+    FROM #matched_cohort
+    WHERE cohort_definition_id = @target_id",
+    target_id = targetId
+    )
+    sql <- SqlRender::translate(sql, dbms)
 
     DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
@@ -440,15 +446,21 @@ getTruncatedOutcomeData <- function(matchedCohort, outcomes, cohortStartDate, st
   if (studyEndDate != "") {
         matchedCohort <- matchedCohort %>%
             collect() %>%
-            mutate(truncate = Andromeda::restoreDate(cohortStartDate) > as.Date(studyEndDate)) %>%
+            mutate(
+                restoredCohortStartDate = ifelse(inherits(cohortStartDate, "Date"), cohortStartDate, Andromeda::restoreDate(cohortStartDate)),
+                truncate = restoredCohortStartDate > as.Date(studyEndDate)
+            ) %>%
             filter(truncate == 0) %>%
-            select(-truncate)
+            select(-truncate, -restoredCohortStartDate)
 
         outcomes <- outcomes %>%
             collect() %>%
-            mutate(truncate = Andromeda::restoreDate(cohortStartDate) > as.Date(studyEndDate)) %>%
+            mutate(
+                restoredCohortStartDate = ifelse(inherits(cohortStartDate, "Date"), cohortStartDate, Andromeda::restoreDate(cohortStartDate)),
+                truncate = restoredCohortStartDate > as.Date(studyEndDate)
+            ) %>%
             filter(truncate == 0) %>%
-            select(-truncate) %>%
+            select(-truncate, -restoredCohortStartDate) %>%
             mutate(y = 1)
     } else {
         outcomes <- outcomes %>% mutate(y = 1)
@@ -464,7 +476,9 @@ writeMetaDataToConcurrentComparatorData <- function(
     outcomeIds,
     matchedCohortDiagnostics
 ) {
-    cohortStatistics <- concurrentComparatorData$matchedCohort %>% group_by(exposureId) %>%
+    cohortStatistics <- concurrentComparatorData$matchedCohort %>%
+        collect() %>%
+        group_by(exposureId) %>%
         summarise(entries = n(),
                   subjects = n_distinct(subjectId),
                   kPtYrs = sum(timeAtRisk / 365.25 / 1000)) %>%

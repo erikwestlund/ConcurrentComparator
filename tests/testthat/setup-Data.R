@@ -9,12 +9,13 @@ defaultDbFile <- "testDb.sqlite"
 # This function takes settings and returns a list of data frames which can be used for testing, including a cohort
 # table that can be run through the SQL files. The building blocks of that cohort data can be used to verify the
 # correctness of the SQL.
-generateTestData <- function(
+generateTestSourceData <- function(
   n,
   targetId,
   outcomeIds,
   proportionSecondShot,
-  riskWindowAfterTargetExposureDays,
+  timeAtRiskStartDays,
+  timeAtRiskEndDays,
   washoutPeriodDays,
   highRiskGroupDefinition,
   matchHighRiskCriteria,
@@ -34,7 +35,7 @@ generateTestData <- function(
       targetId = targetId,
       outcomeIds = outcomeIds,
       proportionSecondShot = proportionSecondShot,
-      riskWindowAfterTargetExposureDays = riskWindowAfterTargetExposureDays,
+      timeAtRiskEndDays = timeAtRiskEndDays,
       washoutPeriodDays = washoutPeriodDays,
       highRiskGroupDefinition = highRiskGroupDefinition,
       matchHighRiskCriteria = matchHighRiskCriteria,
@@ -51,13 +52,13 @@ generateTestData <- function(
   targetCohort <- generateTargetCohortFromSimulatedCohortTable(
       cohort,
       targetCohortId = targetId,
-      riskWindowAfterTargetExposureDays = riskWindowAfterTargetExposureDays
+      timeAtRiskEndDays = timeAtRiskEndDays
   )
 
   comparatorCohort <- generateComparatorCohortFromSimulatedTargetCohortTable(
       targetCohort,
       washoutPeriodDays = washoutPeriodDays,
-      riskWindowAfterTargetExposureDays = riskWindowAfterTargetExposureDays
+      timeAtRiskEndDays = timeAtRiskEndDays
   )
 
   strata <- generateStrataFromCohort(targetCohort, persons)
@@ -71,8 +72,8 @@ generateTestData <- function(
       matchedCohort,
       targetId = targetId,
       outcomeIds = outcomeIds,
-      daysFromObsStart = 1,
-      daysToObsEnd = riskWindowAfterTargetExposureDays
+      daysFromObsStart = timeAtRiskStartDays,
+      daysToObsEnd = timeAtRiskEndDays
   )
 
   # SQLite does not have datetimes. By default, RSQLite will convert dates to days before/after unix epoch
@@ -142,7 +143,8 @@ scaffoldTestData <- function(
     targetId = 666,
     outcomeIds = c(668),
     proportionSecondShot = 1,
-    riskWindowAfterTargetExposureDays = 21,
+    timeAtRiskStartDays = 1,
+    timeAtRiskEndDays = 21,
     washoutPeriodDays = 22,
     highRiskGroupDefinition = list(),
     matchHighRiskCriteria = 'all',
@@ -158,15 +160,15 @@ scaffoldTestData <- function(
     cohortTable = "cohort",
     observationPeriodTable = "observation_period"
 ) {
-
     createEmptySQLiteDb(dbFile)
 
-    data <- generateTestData(
+    data <- generateTestSourceData(
         n,
         targetId,
         outcomeIds,
         proportionSecondShot,
-        riskWindowAfterTargetExposureDays,
+        timeAtRiskStartDays,
+        timeAtRiskEndDays,
         washoutPeriodDays,
         highRiskGroupDefinition,
         matchHighRiskCriteria,
@@ -186,23 +188,29 @@ scaffoldTestData <- function(
         dbms = "sqlite",
         server = dbFile
     )
-    sqliteConnection <- DatabaseConnector::connect(sqliteConnectionDetails)
+    # sqliteConnection <- DatabaseConnector::connect(sqliteConnectionDetails)
 
-    writeMatchedCohortsToScratchDatabase(sqliteConnection,
-                                         "sqlite",
-                                         cdmDatabaseSchema,
-                                         cdmDatabaseSchema,
-                                         cohortTable,
-                                         riskWindowAfterTargetExposureDays,
-                                         washoutPeriodDays,
-                                         targetId)
+    # Call ccdata method
+    ccData <- getDbConcurrentComparatorData(connectionDetails = sqliteConnectionDetails,
+                                            cdmDatabaseSchema = cdmDatabaseSchema,
+                                            targetId = targetId,
+                                            outcomeIds = outcomeIds,
+                                            studyEndDate = studyEndDate,
+                                            exposureDatabaseSchema = cdmDatabaseSchema,
+                                            exposureTable = cohortTable,
+                                            outcomeDatabaseSchema = cdmDatabaseSchema,
+                                            outcomeTable = cohortTable,
+                                            timeAtRiskStart = timeAtRiskStartDays,
+                                            timeAtRiskEnd = timeAtRiskEndDays,
+                                            washoutTime = washoutPeriodDays,
+                                            intermediateFileNameStem = NULL)
 
     settings <- list(
         n = n,
         targetId = targetId,
         outcomeIds = outcomeIds,
         proportionSecondShot = proportionSecondShot,
-        riskWindowAfterTargetExposureDays = riskWindowAfterTargetExposureDays,
+        timeAtRiskEndDays = timeAtRiskEndDays,
         washoutPeriodDays = washoutPeriodDays,
         highRiskGroupDefinition = highRiskGroupDefinition,
         matchHighRiskCriteria = matchHighRiskCriteria,
@@ -221,10 +229,10 @@ scaffoldTestData <- function(
 
     return(
       list(
-          data = data,
+          sourceData = data,
+          ccData = ccData,
           settings = settings,
-          dbFile = dbFile,
-          sqliteConnection = sqliteConnection
+          dbFile = dbFile
       )
     )
 }
@@ -261,4 +269,4 @@ getStrataCountFromData <- function(cohort, targetId, persons) {
         pull(n)
 }
 
-withr::defer(unlink(defaultDbFile), teardown_env())
+# withr::defer(unlink(defaultDbFile), teardown_env())

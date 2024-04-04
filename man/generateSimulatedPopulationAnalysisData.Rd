@@ -9,7 +9,8 @@ generateSimulatedPopulationAnalysisData(
   outcomeIds,
   n = 1e+05,
   proportionSecondShot = 0.65,
-  riskWindowAfterTargetExposureDays = 21,
+  timeAtRiskStartDays = 1,
+  timeAtRiskEndDays = 21,
   washoutPeriodDays = 22,
   highRiskGroupDefinition = list(),
   matchHighRiskCriteria = "any",
@@ -30,7 +31,7 @@ generateSimulatedPopulationAnalysisData(
 
 \item{proportionSecondShot}{The proportion of subjects to receive a  second shot.}
 
-\item{riskWindowAfterTargetExposureDays}{The number of days after target exposure to consider subject at risk.}
+\item{timeAtRiskEndDays}{The number of days after target exposure to consider subject at risk.}
 
 \item{washoutPeriodDays}{The number of days after entering target cohort to consider subject
 '"safe" and eligible for comparator cohort.}

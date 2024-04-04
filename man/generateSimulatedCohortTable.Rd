@@ -10,7 +10,7 @@ generateSimulatedCohortTable(
   targetId = 666,
   outcomeIds = c(668),
   proportionSecondShot = 0.65,
-  riskWindowAfterTargetExposureDays = 21,
+  timeAtRiskEndDays = 21,
   washoutPeriodDays = 22,
   highRiskGroupDefinition = list(),
   matchHighRiskCriteria = "all",
@@ -41,7 +41,7 @@ TODO: Support multiple outcomes}
 \item{proportionSecondShot}{The proportion of the target cohort that received a second shot of
 the vaccine.}
 
-\item{riskWindowAfterTargetExposureDays}{The number of days after the target cohort received the vaccine that
+\item{timeAtRiskEndDays}{The number of days after the target cohort received the vaccine that
 a person is considered
 at risk of the outcome.}
 

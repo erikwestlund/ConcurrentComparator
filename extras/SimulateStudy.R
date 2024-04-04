@@ -11,7 +11,7 @@ lowRiskComparatorIncidence <- .0001
 highRiskTargetIncidence <- .0001
 highRiskComparatorIncidence <- .0001
 proportionSecondShot <- 0.65
-riskWindowAfterTargetExposureDays <- 21
+timeAtRiskEndDays <- 21
 washoutPeriodDays <- 22
 highRiskGroupDefinition <- list(
     list(
@@ -35,7 +35,7 @@ population <- generateSimulatedPopulationAnalysisData(
     targetId = targetId,
     outcomeIds = outcomeIds,
     proportionSecondShot = proportionSecondShot,
-    riskWindowAfterTargetExposureDays = riskWindowAfterTargetExposureDays,
+    timeAtRiskEndDays = timeAtRiskEndDays,
     washoutPeriodDays = washoutPeriodDays,
     highRiskGroupDefinition = highRiskGroupDefinition,
     matchHighRiskCriteria = matchHighRiskCriteria,
@@ -66,7 +66,7 @@ for(n in c(100000, 250000, 500000, 750000, 1000000, 1500000, 2000000, 3000000)) 
         targetId = targetId,
         outcomeIds = outcomeIds,
         proportionSecondShot = proportionSecondShot,
-        riskWindowAfterTargetExposureDays = riskWindowAfterTargetExposureDays,
+        timeAtRiskEndDays = timeAtRiskEndDays,
         washoutPeriodDays = washoutPeriodDays,
         highRiskGroupDefinition = highRiskGroupDefinition,
         lowRiskTargetIncidence = targetIncidence,

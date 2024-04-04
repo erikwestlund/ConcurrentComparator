@@ -8,7 +8,7 @@ created by the definition encoded in CohortExtraction.sql.}
 generateTargetCohortFromSimulatedCohortTable(
   cohort,
   targetCohortId,
-  riskWindowAfterTargetExposureDays = 21
+  timeAtRiskEndDays = 21
 )
 }
 \arguments{
@@ -16,7 +16,7 @@ generateTargetCohortFromSimulatedCohortTable(
 
 \item{targetCohortId}{The ID of the target cohort definition.}
 
-\item{riskWindowAfterTargetExposureDays}{The number of days after the target exposure to include in the risk window.}
+\item{timeAtRiskEndDays}{The number of days after the target exposure to include in the risk window.}
 }
 \value{
 A tibble with the following columns:
