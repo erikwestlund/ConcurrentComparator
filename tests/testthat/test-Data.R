@@ -30,47 +30,63 @@ test_that("CohortExtraction.sql translates to supported SQL DMBS dialects", {
     }
 })
 
-test_that("CohortExtraction.sql yields temporary tables with correct number of rows", {
-    n <- 1000
+test_that("getDbConcurrentComparatorData yields data objects with the expected number of records", {
+
+   # Constant across tests
+    n <- 10000
     proportionSecondShot <- 1
+    studyStartDate <- '2020-12-18'
+    studyEndDate <- '2021-06-30'
 
-    testData <- scaffoldTestData(
-        n = n,
-        proportionSecondShot = proportionSecondShot
+    # Varies across tests -- accords to protocol
+    scenarios <- list(
+        list(
+            timeAtRiskStartDays = 0,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 21,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 28,
+            washoutPeriodDays = 29
+        )
     )
 
-    # # Target
-    # expect_equal(
-    #     nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.target")),
-    #     n * (1+proportionSecondShot)
-    # )
-    #
-    # # Comparator
-    # expect_equal(
-    #     nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.comparator")),
-    #     n
-    # )
+    for(scenario in scenarios) {
+        # Get test data
+        testData <- scaffoldTestData(
+            n = n,
+            proportionSecondShot = proportionSecondShot,
+            studyStartDate = studyStartDate,
+            studyEndDate = studyEndDate,
+            timeAtRiskStartDays = scenario$timeAtRiskStartDays,
+            timeAtRiskEndDays = scenario$timeAtRiskEndDays,
+            washoutPeriodDays = scenario$washoutPeriodDays
+        )
 
-    # Strata -- should match unique combinations from cohort
-    expect_equal(
-        nrow(testData$ccData$strata %>% collect()),
-        nrow(testData$sourceData$strata)
-    )
-#
-#     # Matched Strata
-#     expect_equal(
-#         nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.matched_strata")),
-#         nrow(testData$sourceData$matchedStrata)
-#     )
-#
-#     # Matched Cohort
-#     expect_equal(
-#         nrow(DatabaseConnector::querySql(testData$sqliteConnection, "SELECT * FROM temp.matched_cohort")),
-#         nrow(testData$sourceData$matchedCohort)
-#     )
+        # Strata
+        expect_equal(
+            nrow(testData$ccData$strata %>% collect()),
+            nrow(testData$sourceData$strata)
+        )
 
+        # Matched Cohort
+        expect_equal(
+            nrow(testData$ccData$matchedCohort %>% collect()),
+            nrow(testData$sourceData$matchedCohort)
+        )
 
-    # Test rest of tables
+        # Outcomes
+        expect_equal(
+            nrow(testData$ccData$allOutcomes %>% collect()),
+            nrow(testData$sourceData$allOutcomes)
+        )
+    }
 })
 
 # TODO:

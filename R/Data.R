@@ -186,6 +186,8 @@ getDbConcurrentComparatorData <- function(connectionDetails,
     delta <- Sys.time() - start
     message("Getting ConcurrentComparator data from server took ", signif(delta, 3), " ", attr(delta, "units"))
 
+    DatabaseConnector::disconnect(connection)
+
     return(concurrentComparatorData)
 }
 
@@ -422,7 +424,7 @@ writeOutcomesToConcurrentComparatorData <- function(
 
     sql <- patchSql(sql, dbms)
 
-     DatabaseConnector::querySqlToAndromeda(connection = connection,
+    DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
                                            andromeda = concurrentComparatorData,
                                            andromedaTableName = "allOutcomes",

@@ -2,10 +2,10 @@ DBMS:
 sqlite
 
 Error:
-bad_weak_ptr
+Invalid or closed connection
 
 SQL:
-SELECT * FROM temp.target
+drop table if exists temp.target
 
 R version:
 R version 4.3.2 (2023-10-31)
@@ -23,7 +23,7 @@ Attached base packages:
 - base
 
 Other attached packages:
-- RSQLite (2.3.5)
+- testthat (3.2.1)
 - ConcurrentComparator (0.1.0)
 - survival (3.5-7)
 - Cyclops (3.4.0)

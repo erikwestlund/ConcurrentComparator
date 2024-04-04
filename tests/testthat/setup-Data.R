@@ -117,7 +117,7 @@ generateTestSourceData <- function(
 
 createEmptySQLiteDb <- function(dbFile) {
     con <- dbConnect(RSQLite::SQLite(), dbFile)
-    dbDisconnect(con)
+    RSQLite::dbDisconnect(con)
 }
 
 createPersonsTable <- function(persons, schema, personsTable, dbFile) {
@@ -188,9 +188,7 @@ scaffoldTestData <- function(
         dbms = "sqlite",
         server = dbFile
     )
-    # sqliteConnection <- DatabaseConnector::connect(sqliteConnectionDetails)
 
-    # Call ccdata method
     ccData <- getDbConcurrentComparatorData(connectionDetails = sqliteConnectionDetails,
                                             cdmDatabaseSchema = cdmDatabaseSchema,
                                             targetId = targetId,
@@ -235,38 +233,6 @@ scaffoldTestData <- function(
           dbFile = dbFile
       )
     )
-}
-
-getStrataCountFromData <- function(cohort, targetId, persons) {
-        cohort %>%
-        filter(cohort_definition_id == targetId) %>%
-        unique() %>%
-        inner_join(
-            persons %>% select(
-                person_id,
-                gender_concept_id,
-                race_concept_id,
-                ethnicity_concept_id,
-                year_of_birth
-            ),
-            by = c("subject_id" = "person_id")
-        ) %>%
-        mutate(
-            age_group_id = round((year(
-                as.POSIXct(cohort_start_date, origin = "1970-01-01")
-            ) - year_of_birth) / 5),
-            unique_id = paste(
-                cohort_start_date,
-                age_group_id,
-                gender_concept_id,
-                race_concept_id,
-                ethnicity_concept_id,
-                sep = "_"
-            )
-        ) %>%
-        distinct(unique_id) %>%
-        count() %>%
-        pull(n)
 }
 
 # withr::defer(unlink(defaultDbFile), teardown_env())
