@@ -35,7 +35,7 @@ NULL
 setClass("ConcurrentComparatorData", contains = "Andromeda")
 
 
-#' Get the concurrent comparator from the server
+#' Get the concurrent comparator data from the server
 #'
 #' @description
 #' This function executes a large set of SQL statements against the database in OMOP CDM format to
@@ -58,7 +58,7 @@ setClass("ConcurrentComparatorData", contains = "Andromeda")
 #' @param comparatorId                 A unique identifier to define the comparator cohort. comparatorId
 #'                                     is used to select the COHORT_DEFINITION_ID in the cohort-like
 #'                                     table. TODO UPDATE
-#' @param overwriteComparators         Allow regeneration if comparators if comparatorId already exists
+#' @param overwriteComparators         Allow regeneration of comparators if comparatorId already exists
 #'                                     TODO what is the table name?
 #' @param outcomeIds                   A list of cohort IDs used to define outcomes.
 #'
@@ -444,6 +444,7 @@ saveIntermediateFile <- function(concurrentComparatorData, intermediateFileNameS
   return(concurrentComparatorData)
 }
 
+#' TODO: doc
 getTruncatedOutcomeData <- function(matchedCohort, outcomes, cohortStartDate, studyEndDate = "") {
   if (studyEndDate != "") {
         matchedCohort <- matchedCohort %>%
@@ -510,5 +511,5 @@ patchSql <- function(sql, dbms) {
         sql <- gsub("extract\\(year from (.*?)\\)", "strftime('%Y', DATETIME(\\1, 'unixepoch'))", sql)
     }
 
-    sql
+    return(sql)
 }

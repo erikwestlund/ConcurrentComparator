@@ -138,6 +138,158 @@ createObservationPeriodTable <- function(observationPeriods, schema, observation
     RSQLite::dbDisconnect(con)
 }
 
+
+# Specify outcomes in a list of lists, where each list contains the outcomeId and the number of days after the first shot.
+# For example:
+#
+# list(
+#     list(outcomeId = 1,
+#         daysAfterLastShot = 7),
+#     list(outcomeId = 2,
+#         daysAfterLastShot = 30)
+# )
+
+scaffoldN2TestData <- function(
+    targetId = 666,
+    outcomeIds = c(668),
+    outcomes = list(),
+    secondShot = TRUE,
+    shot1Day = "2020-04-01",
+    daysBetweenShots = 30,
+    timeAtRiskStartDays = 1,
+    timeAtRiskEndDays = 21,
+    washoutPeriodDays = 22,
+    comparatorShotDaysBefore = 22,  # Match to washout to make them share stratum
+    dbFile = "testDb.sqlite",
+    cdmDatabaseSchema = "main",
+    personsTable = "person",
+    cohortTable = "cohort",
+    observationPeriodTable = "observation_period"
+) {
+  createEmptySQLiteDb(dbFile)
+
+  shot1Day <- as.Date(shot1Day)
+  shotDay <- shot1Day
+
+  # Generate a person
+  targetPerson <- generateSimulatedPersonsData(1)
+
+  # Generate a person who will match strata of this person
+  comparatorPerson <- targetPerson %>% mutate(
+      person_id = 2
+  )
+
+  # Combine
+  person <- rbind(targetPerson, comparatorPerson)
+
+  # Target: First shot
+  cohort <- tribble(
+      ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
+      targetId, 1, shotDay, shotDay + 1
+  )
+
+  # Target: Second shot, if defined
+  if(secondShot) {
+    shot2Day <- shotDay + daysBetweenShots
+    cohort <- rbind(cohort, tribble(
+        ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
+        targetId, 1, shot2Day, shot2Day + 1
+    ))
+  }
+
+  # Person 2: Comparator match. Gets shot washoutPeriodDays before the first shot of Target
+  # This is to ensure this match enters the comparator cohort at the same time as the target cohort
+  # gets a shot.
+  comparatorStartDay <- shot1Day - comparatorShotDaysBefore
+  cohort <- rbind(cohort, tribble(
+      ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
+      targetId, 2, comparatorStartDay, comparatorStartDay + 1
+  ))
+
+  # Create outcomes
+  if(length(outcomes) > 0) {
+      for(outcome in outcomes) {
+          targetOutcomeDay <- shot1Day + outcome$daysAfterFirstShot
+          comparatorOutcomeDay <- comparatorStartDay + outcome$daysAfterFirstShot
+          cohort <- rbind(cohort, tribble(
+              ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
+              outcome$outcomeId, 1, targetOutcomeDay, targetOutcomeDay + 1,
+              outcome$outcomeId, 2, comparatorOutcomeDay, comparatorOutcomeDay + 1
+          ))
+      }
+  }
+
+  person1MinDay <- cohort %>% filter(subject_id == 1) %>% pull(cohort_start_date) %>% min() - 1
+  person1MaxDay <- cohort %>% filter(subject_id == 1) %>% pull(cohort_end_date) %>% max() + 1 + 2*washoutPeriodDays
+  person2MinDay <- cohort %>% filter(subject_id == 2) %>% pull(cohort_start_date) %>% min() - 1
+  person2MaxDay <- cohort %>% filter(subject_id == 2) %>% pull(cohort_end_date) %>% max() + 1 + 2*washoutPeriodDays
+
+  observationPeriods <- tribble(
+      ~person_id, ~observation_period_start_date, ~observation_period_end_date,
+      1, person1MinDay, person1MaxDay,
+      2, person2MinDay, person2MaxDay
+  )
+
+  # make SQLite ready dataframes by converting dates to unix timestamps
+  sqlitePerson <- person %>% mutate(
+      birth_datetime = as.numeric(as.POSIXct(birth_datetime), format = "%Y-%m-%d")
+  )
+
+  sqliteCohort <- cohort %>% mutate(
+      cohort_start_date = as.numeric(as.POSIXct(cohort_start_date), format = "%Y-%m-%d"),
+      cohort_end_date = as.numeric(as.POSIXct(cohort_end_date), format = "%Y-%m-%d")
+  )
+
+  sqliteObservationPeriod <- observationPeriods %>% mutate(
+      observation_period_start_date = as.numeric(as.POSIXct(observation_period_start_date), format = "%Y-%m-%d"),
+      observation_period_end_date = as.numeric(as.POSIXct(observation_period_end_date), format = "%Y-%m-%d")
+  )
+
+  createPersonsTable(sqlitePerson, cdmDatabaseSchema, personsTable, dbFile)
+  createCohortTable(sqliteCohort, cdmDatabaseSchema, cohortTable, dbFile)
+  createObservationPeriodTable(sqliteObservationPeriod, cdmDatabaseSchema, observationPeriodTable, dbFile)
+
+  sqliteConnectionDetails <- DatabaseConnector::createConnectionDetails(
+      dbms = "sqlite",
+      server = dbFile
+  )
+
+  ccData <- getDbConcurrentComparatorData(connectionDetails = sqliteConnectionDetails,
+                                          cdmDatabaseSchema = cdmDatabaseSchema,
+                                          targetId = targetId,
+                                          outcomeIds = outcomeIds,
+                                          exposureDatabaseSchema = cdmDatabaseSchema,
+                                          exposureTable = cohortTable,
+                                          outcomeDatabaseSchema = cdmDatabaseSchema,
+                                          outcomeTable = cohortTable,
+                                          timeAtRiskStart = timeAtRiskStartDays,
+                                          timeAtRiskEnd = timeAtRiskEndDays,
+                                          washoutTime = washoutPeriodDays,
+                                          intermediateFileNameStem = NULL)
+
+  settings <- list(
+      targetId = targetId,
+      outcomes = outcomes,
+      secondShot = secondShot,
+      shot1Day = shot1Day,
+      daysBetweenShots = daysBetweenShots,
+      timeAtRiskStartDays = timeAtRiskStartDays,
+      timeAtRiskEndDays = timeAtRiskEndDays,
+      washoutPeriodDays = washoutPeriodDays,
+      comparatorShotDaysBefore = comparatorShotDaysBefore,
+      dbFile = dbFile,
+      cdmDatabaseSchema = cdmDatabaseSchema,
+      personsTable = personsTable,
+      cohortTable = cohortTable,
+      observationPeriodTable = observationPeriodTable
+  )
+
+  return(list(
+      ccData = ccData,
+      settings = settings
+  ))
+}
+
 scaffoldTestData <- function(
     n = 1000,
     targetId = 666,
@@ -229,8 +381,7 @@ scaffoldTestData <- function(
       list(
           sourceData = data,
           ccData = ccData,
-          settings = settings,
-          dbFile = dbFile
+          settings = settings
       )
     )
 }

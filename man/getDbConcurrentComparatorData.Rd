@@ -2,7 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{getDbConcurrentComparatorData}
 \alias{getDbConcurrentComparatorData}
-\title{Get the concurrent comparator from the server}
+\title{Get the concurrent comparator data from the server}
 \usage{
 getDbConcurrentComparatorData(
   connectionDetails,
@@ -41,7 +41,7 @@ used to select the COHORT_DEFINITION_ID in the cohort-like table.}
 
 \item{outcomeIds}{A list of cohort IDs used to define outcomes.}
 
-\item{overwriteComparators}{Allow regeneration if comparators if comparatorId already exists
+\item{overwriteComparators}{Allow regeneration of comparators if comparatorId already exists
 TODO what is the table name?}
 
 \item{studyStartDate}{A calendar date specifying the minimum date that a cohort index

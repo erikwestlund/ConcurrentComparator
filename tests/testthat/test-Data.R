@@ -30,7 +30,7 @@ test_that("CohortExtraction.sql translates to supported SQL DMBS dialects", {
     }
 })
 
-test_that("getDbConcurrentComparatorData yields data objects with the expected number of records", {
+test_that("getDbConcurrentComparatorData yields data objects with the expected number of records in common scenarios.", {
 
    # Constant across tests
     n <- 10000
@@ -38,7 +38,7 @@ test_that("getDbConcurrentComparatorData yields data objects with the expected n
     studyStartDate <- '2020-12-18'
     studyEndDate <- '2021-06-30'
 
-    # Varies across tests -- accords to protocol
+    # Varies across tests -- accords to EUMAEUS protocol
     scenarios <- list(
         list(
             timeAtRiskStartDays = 0,
@@ -85,6 +85,40 @@ test_that("getDbConcurrentComparatorData yields data objects with the expected n
         expect_equal(
             nrow(testData$ccData$allOutcomes %>% collect()),
             nrow(testData$sourceData$allOutcomes)
+        )
+    }
+})
+
+test_that("Two people who get shot the washout period days apart end up in same Strata.", {
+    scenarios <- list(
+        list(
+            timeAtRiskStartDays = 0,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 21,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 28,
+            washoutPeriodDays = 29
+        )
+    )
+
+    for(scenario in scenarios) {
+        testData <- scaffoldN2TestData(
+            timeAtRiskStartDays = scenario$timeAtRiskStartDays,
+            timeAtRiskEndDays = scenario$timeAtRiskEndDays,
+            washoutPeriodDays = scenario$washoutPeriodDays,
+            comparatorShotDaysBefore = scenario$washoutPeriodDays
+        )
+
+        expect_equal(
+            testData$ccData$matchedCohort %>% collect() %>% filter(subjectId == 1) %>% pull(strataId),
+            testData$ccData$matchedCohort %>% collect() %>% filter(subjectId == 2) %>% pull(strataId)
         )
     }
 })
