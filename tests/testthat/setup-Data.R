@@ -139,27 +139,31 @@ createObservationPeriodTable <- function(observationPeriods, schema, observation
 }
 
 
-# Specify outcomes in a list of lists, where each list contains the outcomeId and the number of days after the first shot.
-# For example:
+# Specify outcomes for each cohort (targetOutcomes, comparatorOutcomes) in a list of lists, where each list contains
+# the outcomeId and the number of days after entering the first cohort (daysAfterFirstCohortEntry). For example:
 #
-# list(
+# targetOutcomes = list(
 #     list(outcomeId = 1,
-#         daysAfterLastShot = 7),
+#         daysAfterFirstCohortEntry = 7),
 #     list(outcomeId = 2,
-#         daysAfterLastShot = 30)
+#         daysAfterFirstCohortEntry = 30)
 # )
+#
+# Note that to place an outcome in a target's second cohort entry, daysAfterFirstCohortEntry should extend
+# beyond the daysBetweenShots.
 
 generateN2TestData <- function(
     targetId = 666,
     outcomeIds = c(668),
-    outcomes = list(),
+    targetOutcomes = list(),
+    comparatorOutcomes = list(),
     secondShot = TRUE,
-    shot1Day = "2020-04-01",
+    targetShot1Day = "2020-04-01",
     daysBetweenShots = 30,
     timeAtRiskStartDays = 1,
     timeAtRiskEndDays = 21,
     washoutPeriodDays = 22,
-    comparatorShotDaysBefore = 22,  # Match to washout to make them share stratum
+    comparatorShot1DaysBeforeLastTargetShot = 22,  # Match to washout to make them share stratum
     dbFile = "testDb.sqlite",
     cdmDatabaseSchema = "main",
     personsTable = "person",
@@ -168,8 +172,7 @@ generateN2TestData <- function(
 ) {
   createEmptySQLiteDb(dbFile)
 
-  shot1Day <- as.Date(shot1Day)
-  shotDay <- shot1Day
+  targetShot1Day <- as.Date(targetShot1Day)
 
   # Generate a person
   targetPerson <- generateSimulatedPersonsData(1)
@@ -185,38 +188,48 @@ generateN2TestData <- function(
   # Target: First shot
   cohort <- tribble(
       ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
-      targetId, 1, shotDay, shotDay + 1
+      targetId, 1, targetShot1Day, targetShot1Day + 1
   )
 
   # Target: Second shot, if defined
   if(secondShot) {
-    shot2Day <- shotDay + daysBetweenShots
+    targetShot2Day <- targetShot1Day + daysBetweenShots
     cohort <- rbind(cohort, tribble(
         ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
-        targetId, 1, shot2Day, shot2Day + 1
+        targetId, 1, targetShot2Day, targetShot2Day + 1
     ))
   }
 
-  # Person 2: Comparator match. Gets shot washoutPeriodDays before the first shot of Target
+  targetLastShotDay <- if(secondShot) targetShot2Day else targetShot1Day
+
+  # Person 2: Comparator match. Gets shot 1 washoutPeriodDays before the first shot of Target
   # This is to ensure this match enters the comparator cohort at the same time as the target cohort
-  # gets a shot.
-  comparatorStartDay <- shot1Day - comparatorShotDaysBefore
+  # gets a shot. We only give the comparator one shot
+  comparatorShot1Day <- targetShot1Day - comparatorShot1DaysBeforeLastTargetShot
   cohort <- rbind(cohort, tribble(
       ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
-      targetId, 2, comparatorStartDay, comparatorStartDay + 1
+      targetId, 2, comparatorShot1Day, comparatorShot1Day + 1
   ))
 
-  # Create outcomes
-  if(length(outcomes) > 0) {
-      for(outcome in outcomes) {
-          targetOutcomeDay <- shot1Day + outcome$daysAfterFirstShot
-          comparatorOutcomeDay <- comparatorStartDay + outcome$daysAfterFirstShot
-          cohort <- rbind(cohort, tribble(
-              ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
-              outcome$outcomeId, 1, targetOutcomeDay, targetOutcomeDay + 1,
-              outcome$outcomeId, 2, comparatorOutcomeDay, comparatorOutcomeDay + 1
-          ))
-      }
+  # Create target outcomes
+  for(outcome in targetOutcomes) {
+    outcomeDay <- targetShot1Day + outcome$daysAfterFirstCohortEntry
+
+    cohort <- rbind(cohort, tribble(
+        ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
+        outcome$outcomeId, 1, outcomeDay, outcomeDay + 1
+    ))
+  }
+
+  # Create comparator outcomes
+  # Comparator window starts washoutPeriodDays days after the shot
+  for(outcome in comparatorOutcomes) {
+      outcomeDay <- comparatorShot1Day + washoutPeriodDays + outcome$daysAfterFirstCohortEntry
+
+      cohort <- rbind(cohort, tribble(
+          ~cohort_definition_id, ~subject_id, ~cohort_start_date, ~cohort_end_date,
+          outcome$outcomeId, 2, outcomeDay, outcomeDay + 1
+      ))
   }
 
   person1MinDay <- cohort %>% filter(subject_id == 1) %>% pull(cohort_start_date) %>% min() - 1
@@ -229,6 +242,31 @@ generateN2TestData <- function(
       1, person1MinDay, person1MaxDay,
       2, person2MinDay, person2MaxDay
   )
+
+  # make SQLite ready dataframes by converting dates to unix timestamps
+  sqlitePerson <- person %>% mutate(
+      birth_datetime = as.numeric(as.POSIXct(birth_datetime), format = "%Y-%m-%d")
+  )
+
+  sqliteCohort <- cohort %>% mutate(
+      cohort_start_date = as.numeric(as.POSIXct(cohort_start_date), format = "%Y-%m-%d"),
+      cohort_end_date = as.numeric(as.POSIXct(cohort_end_date), format = "%Y-%m-%d")
+  )
+
+  sqliteObservationPeriod <- observationPeriods %>% mutate(
+      observation_period_start_date = as.numeric(as.POSIXct(observation_period_start_date), format = "%Y-%m-%d"),
+      observation_period_end_date = as.numeric(as.POSIXct(observation_period_end_date), format = "%Y-%m-%d")
+  )
+
+  createPersonsTable(sqlitePerson, cdmDatabaseSchema, personsTable, dbFile)
+  createCohortTable(sqliteCohort, cdmDatabaseSchema, cohortTable, dbFile)
+  createObservationPeriodTable(sqliteObservationPeriod, cdmDatabaseSchema, observationPeriodTable, dbFile)
+
+  sqliteConnectionDetails <- DatabaseConnector::createConnectionDetails(
+      dbms = "sqlite",
+      server = dbFile
+  )
+
 
   # make SQLite ready dataframes by converting dates to unix timestamps
   sqlitePerson <- person %>% mutate(
@@ -271,12 +309,12 @@ generateN2TestData <- function(
       targetId = targetId,
       outcomes = outcomes,
       secondShot = secondShot,
-      shot1Day = shot1Day,
+      targetShot1Day = targetShot1Day,
       daysBetweenShots = daysBetweenShots,
       timeAtRiskStartDays = timeAtRiskStartDays,
       timeAtRiskEndDays = timeAtRiskEndDays,
       washoutPeriodDays = washoutPeriodDays,
-      comparatorShotDaysBefore = comparatorShotDaysBefore,
+      comparatorShot1DaysBeforeLastTargetShot = comparatorShot1DaysBeforeLastTargetShot,
       dbFile = dbFile,
       cdmDatabaseSchema = cdmDatabaseSchema,
       personsTable = personsTable,

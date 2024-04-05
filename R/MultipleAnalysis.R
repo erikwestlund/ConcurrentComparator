@@ -126,7 +126,7 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                         exposureDatabaseSchema = exposureDatabaseSchema,
                         exposureTable = exposureTable,
                         outcomeDatabaseSchema = cdmDatabaseSchema, # X
-                        outcomeTable = "condition_era", # X
+                        outcomeTable = "condition_era", # TODO: allow for correctly specifying this table
                         timeAtRiskStart = analysis$timeAtRiskStart,
                         timeAtRiskEnd = analysis$timeAtRiskEnd,
                         washoutTime = analysis$washoutTime)
