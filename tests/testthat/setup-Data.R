@@ -307,7 +307,8 @@ generateN2TestData <- function(
 
   settings <- list(
       targetId = targetId,
-      outcomes = outcomes,
+      targetOutcomes = targetOutcomes,
+      comparatorOutcomes = comparatorOutcomes,
       secondShot = secondShot,
       targetShot1Day = targetShot1Day,
       daysBetweenShots = daysBetweenShots,

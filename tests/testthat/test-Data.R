@@ -105,7 +105,7 @@ test_that("Two people who get shot washout period days apart from each other end
             timeAtRiskStartDays = scenario$timeAtRiskStartDays,
             timeAtRiskEndDays = scenario$timeAtRiskEndDays,
             washoutPeriodDays = scenario$washoutPeriodDays,
-            comparatorShotDaysBefore = scenario$washoutPeriodDays
+            comparatorShot1DaysBeforeLastTargetShot = scenario$washoutPeriodDays
         )
 
         expect_equal(
@@ -139,7 +139,7 @@ test_that("Two people who get shot > washout period days apart from each other e
             timeAtRiskStartDays = scenario$timeAtRiskStartDays,
             timeAtRiskEndDays = scenario$timeAtRiskEndDays,
             washoutPeriodDays = scenario$washoutPeriodDays,
-            comparatorShotDaysBefore = scenario$washoutPeriodDays + 5
+            comparatorShot1DaysBeforeLastTargetShot = scenario$washoutPeriodDays + 5
         )
 
         # Empty because no strata match found so matchedCohort has no records.
