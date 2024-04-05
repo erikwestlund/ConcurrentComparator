@@ -31,14 +31,6 @@ test_that("CohortExtraction.sql translates to supported SQL DMBS dialects", {
 })
 
 test_that("getDbConcurrentComparatorData yields data objects with the expected number of records in common scenarios.", {
-
-   # Constant across tests
-    n <- 10000
-    proportionSecondShot <- 1
-    studyStartDate <- '2020-12-18'
-    studyEndDate <- '2021-06-30'
-
-    # Varies across tests -- accords to EUMAEUS protocol
     scenarios <- list(
         list(
             timeAtRiskStartDays = 0,
@@ -59,11 +51,11 @@ test_that("getDbConcurrentComparatorData yields data objects with the expected n
 
     for(scenario in scenarios) {
         # Get test data
-        testData <- scaffoldTestData(
-            n = n,
-            proportionSecondShot = proportionSecondShot,
-            studyStartDate = studyStartDate,
-            studyEndDate = studyEndDate,
+        testData <- generateTestData(
+            n = 10000,
+            proportionSecondShot = 1,
+            studyStartDate = '2020-12-18',
+            studyEndDate = '2021-06-30',
             timeAtRiskStartDays = scenario$timeAtRiskStartDays,
             timeAtRiskEndDays = scenario$timeAtRiskEndDays,
             washoutPeriodDays = scenario$washoutPeriodDays
@@ -89,7 +81,7 @@ test_that("getDbConcurrentComparatorData yields data objects with the expected n
     }
 })
 
-test_that("Two people who get shot washout period days apart end up in same Strata.", {
+test_that("Two people who get shot washout period days apart from each other end up in same Strata.", {
     scenarios <- list(
         list(
             timeAtRiskStartDays = 0,
@@ -109,7 +101,7 @@ test_that("Two people who get shot washout period days apart end up in same Stra
     )
 
     for(scenario in scenarios) {
-        testData <- scaffoldN2TestData(
+        testData <- generateN2TestData(
             timeAtRiskStartDays = scenario$timeAtRiskStartDays,
             timeAtRiskEndDays = scenario$timeAtRiskEndDays,
             washoutPeriodDays = scenario$washoutPeriodDays,
@@ -123,9 +115,59 @@ test_that("Two people who get shot washout period days apart end up in same Stra
     }
 })
 
+test_that("Two people who get shot > washout period days apart from each other end up in different Strata.", {
+    scenarios <- list(
+        list(
+            timeAtRiskStartDays = 0,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 21,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 28,
+            washoutPeriodDays = 29
+        )
+    )
 
-test_that("Outcome on day of shot does not show up when daysToStart > 0", {
-    testData <- scaffoldN2TestData(
+    for(scenario in scenarios) {
+        testData <- generateN2TestData(
+            timeAtRiskStartDays = scenario$timeAtRiskStartDays,
+            timeAtRiskEndDays = scenario$timeAtRiskEndDays,
+            washoutPeriodDays = scenario$washoutPeriodDays,
+            comparatorShotDaysBefore = scenario$washoutPeriodDays + 5
+        )
+
+        # Empty because N=2 and no strata match.
+        expect_equal(
+            testData$ccData$matchedCohort %>% collect() %>% nrow(),
+            0
+        )
+    }
+})
+
+test_that("Observed outcome on day after shot counts when daysToStart == 1", {
+    testData <- generateN2TestData(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22,
+            outcomes = list(
+                list(outcomeId = 668, daysAfterFirstShot = 1)
+            )
+        )
+
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
+        1
+    )
+})
+
+test_that("Observed outcome on day of shot does not count when daysToStart > 0", {
+    testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
             washoutPeriodDays = 22,
@@ -140,14 +182,13 @@ test_that("Outcome on day of shot does not show up when daysToStart > 0", {
     )
 })
 
-
-test_that("Outcome on day after shot shows up when daysToStart = 1", {
-    testData <- scaffoldN2TestData(
+test_that("Outcome on day 7 after shot counts when time at risk ends on day 7", {
+    testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
             washoutPeriodDays = 22,
             outcomes = list(
-                list(outcomeId = 668, daysAfterFirstShot = 1)
+                list(outcomeId = 668, daysAfterFirstShot = 7)
             )
         )
 
@@ -156,6 +197,23 @@ test_that("Outcome on day after shot shows up when daysToStart = 1", {
         1
     )
 })
+
+test_that("Outcome on day 8 after shot does not count when time at risk ends on day 7", {
+    testData <- generateN2TestData(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22,
+            outcomes = list(
+                list(outcomeId = 668, daysAfterFirstShot = 8)
+            )
+        )
+
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
+        0
+    )
+})
+
 
 
 # TODO:

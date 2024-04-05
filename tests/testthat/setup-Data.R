@@ -149,7 +149,7 @@ createObservationPeriodTable <- function(observationPeriods, schema, observation
 #         daysAfterLastShot = 30)
 # )
 
-scaffoldN2TestData <- function(
+generateN2TestData <- function(
     targetId = 666,
     outcomeIds = c(668),
     outcomes = list(),
@@ -290,7 +290,7 @@ scaffoldN2TestData <- function(
   ))
 }
 
-scaffoldTestData <- function(
+generateTestData <- function(
     n = 1000,
     targetId = 666,
     outcomeIds = c(668),
