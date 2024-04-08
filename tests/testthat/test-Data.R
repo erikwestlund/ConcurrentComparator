@@ -279,45 +279,56 @@ test_that("Comparator outcome on day 8 after shot does not count when time at ri
     )
 })
 
-test_that("Target outcome with 22-day washout period and outcome on day 25 after shot counts as comparator outcome.", {
-    testData <- generateN2TestData(
+test_that("Target outcome occuring after washout period counts as comparator outcome for all common scenarios.", {
+
+    scenarios <- list(
+        list(
+            timeAtRiskStartDays = 0,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22
+        ),
+        list(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 21,
-            washoutPeriodDays = 22,
-            comparatorShot1DaysBeforeLastTargetShot = -22, # Need to match the strata; line up with target
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 28,
+            washoutPeriodDays = 29
+        )
+    )
+
+    for(scenario in scenarios) {
+
+        testData <- generateN2TestData(
+            timeAtRiskStartDays = scenario$timeAtRiskStartDays,
+            timeAtRiskEndDays = scenario$timeAtRiskEndDays,
+            washoutPeriodDays = scenario$washoutPeriodDays,
+            comparatorShot1DaysBeforeLastTargetShot = -1 * scenario$washoutPeriodDays, # Need to match the strata; line up with target
             secondShot = FALSE,
             targetOutcomes = list(
-                list(outcomeId = 668, daysAfterFirstCohortEntry = 25)
+                list(outcomeId = 668, daysAfterFirstCohortEntry = scenario$washoutPeriodDays + 3)
             )
         )
 
-    testData$sourceData$cohort
-    testData$ccData$matchedCohort %>% collect()
-    testData$ccData$strata %>% collect()
-    testData$ccData$allOutcomes %>% collect()
-    testData$sourceData$cohort
+        # Make sure "target" (subjectId == 1) has outcome
+        expect_equal(
+            testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
+            1
+        )
 
-    # Make sure "target" (subjectId == 1) has outcome
-    expect_equal(
-        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
-        1
-    )
+        # Make sure the exposure ID for the target is 0 to ensure target outcome is counting as comparator
+        expect_equal(
+            testData$ccData$matchedCohort %>% collect() %>% filter(subjectId == 1) %>% pull(exposureId),
+            0
+        )
 
-    # Make sure the exposure ID for the target is 0 to ensure target outcome is counting as comparator
-    expect_equal(
-        testData$ccData$matchedCohort %>% collect() %>% filter(subjectId == 1) %>% pull(exposureId),
-        0
-    )
-
-    # Make sure the time to event is 3, as it should be 3 days after entering comparator group
-    expect_equal(
-        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% pull(daysToEvent),
-        3
-    )
+        # Make sure the time to event is 3, as it should be 3 days after entering comparator group
+        expect_equal(
+            testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% pull(daysToEvent),
+            3
+        )
+    }
 })
 
-
-
-# TODO:
-# Test correct results with default parameters
-# Then may need to refactor some to make it make sense with non-default params
