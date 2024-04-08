@@ -2,12 +2,25 @@
 % Please edit documentation in R/Data.R
 \name{patchTestingSql}
 \alias{patchTestingSql}
-\title{TODO: doc
-Used only to translate sqlite}
+\title{Patch testing SQL.}
 \usage{
 patchTestingSql(sql, dbms)
 }
+\arguments{
+\item{sql}{SQL to patch.}
+
+\item{dbms}{A database management system understood by SqlRender.}
+}
+\value{
+A string of SQL.
+}
 \description{
-TODO: doc
-Used only to translate sqlite
+Patch testing SQL.
+}
+\details{
+This function is used to patch SQL for testing purposes. Its purpose is to allow
+SQLite to patch SQL to allow the getDbConcurrentComparatorData method to be run
+with data stored in SQLite. In particular, it replaces the `floor` function with
+`round` and the `extract(year from VAR)` function with
+`strftime('%Y', DATETIME(VAR, 'unixepoch'))`.
 }

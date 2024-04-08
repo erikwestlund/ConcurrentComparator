@@ -2,10 +2,17 @@
 % Please edit documentation in R/Data.R
 \name{getMatchedCohortDiagnostics}
 \alias{getMatchedCohortDiagnostics}
-\title{TODO: doc}
+\title{Get diagnostics of the matched cohort, including number of cases with zero time-at-risk.}
 \usage{
 getMatchedCohortDiagnostics(matchedCohort)
 }
+\arguments{
+\item{matchedCohort}{A tibble of matched cohort data.}
+}
+\value{
+A list of diagnostics from the matched cohort, including acounts of `zeroT` and `zeroC`, which are the number of
+subjects with zero time-at-risk in the target and comparator cohorts, respectively.
+}
 \description{
-TODO: doc
+Get diagnostics of the matched cohort, including number of cases with zero time-at-risk.
 }

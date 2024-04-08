@@ -1,6 +1,6 @@
 library(RSQLite)
 
-set.seed(176400)
+set.seed(1234)
 
 defaultDbFile <- "testDb.sqlite"
 

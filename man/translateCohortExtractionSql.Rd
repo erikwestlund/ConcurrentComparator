@@ -2,7 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{translateCohortExtractionSql}
 \alias{translateCohortExtractionSql}
-\title{TODO: document}
+\title{Translate CohortExtraction.sql}
 \usage{
 translateCohortExtractionSql(
   dbms,
@@ -12,9 +12,29 @@ translateCohortExtractionSql(
   timeAtRiskEnd,
   washoutTime,
   targetId,
-  testing = testing
+  testing = FALSE
 )
 }
+\arguments{
+\item{dbms}{The database management system understood by SqlRender.}
+
+\item{cdmDatabaseSchema}{The name of the database schema where the OMOP CDM instance is stored.}
+
+\item{cohortDatabaseSchema}{The name of the database schema where the cohort data is stored.}
+
+\item{cohortTable}{The name of the table where the cohort data is stored.}
+
+\item{timeAtRiskEnd}{The time-at-risk end in days after subject index date.}
+
+\item{washoutTime}{Washout time in days between target and comparator periods.}
+
+\item{targetId}{The ID of the target cohort.}
+
+\item{testing}{Whether to run in testing mode.}
+}
+\value{
+A string of SQL.
+}
 \description{
-TODO: document
+Translate CohortExtraction.sql
 }

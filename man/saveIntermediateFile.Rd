@@ -2,7 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{saveIntermediateFile}
 \alias{saveIntermediateFile}
-\title{TODO: doc}
+\title{Save intermediate file.}
 \usage{
 saveIntermediateFile(
   concurrentComparatorData,
@@ -10,6 +10,16 @@ saveIntermediateFile(
   suffix = 1
 )
 }
+\arguments{
+\item{concurrentComparatorData}{A [ConcurrentComparatorData] object.}
+
+\item{intermediateFileNameStem}{The stem of the file name to save the intermediate file to.}
+
+\item{suffix}{A suffix to append to the file name.}
+}
+\value{
+A [ConcurrentComparatorData] object.
+}
 \description{
-TODO: doc
+Save intermediate file.
 }

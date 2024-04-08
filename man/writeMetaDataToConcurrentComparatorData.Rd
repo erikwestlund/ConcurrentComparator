@@ -2,7 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{writeMetaDataToConcurrentComparatorData}
 \alias{writeMetaDataToConcurrentComparatorData}
-\title{TODO: doc}
+\title{Title}
 \usage{
 writeMetaDataToConcurrentComparatorData(
   concurrentComparatorData,
@@ -11,6 +11,20 @@ writeMetaDataToConcurrentComparatorData(
   matchedCohortDiagnostics
 )
 }
+\arguments{
+\item{concurrentComparatorData}{An Andromeda object returned by `initializeConcurrentComparatorData()`}
+
+\item{targetId}{The ID of the target cohort.}
+
+\item{outcomeIds}{A vector of IDs of the outcomes.}
+
+\item{matchedCohortDiagnostics}{A list of diagnostics from the matched cohort, including acounts of `zeroT` and
+`zeroC`, which are the number of subjects with zero time-at-risk in the target
+and comparator cohorts, respectively.}
+}
+\value{
+An object of class `ConcurrentComparatorData` with metadata attached.
+}
 \description{
-TODO: doc
+Title
 }

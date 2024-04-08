@@ -2,10 +2,17 @@
 % Please edit documentation in R/Data.R
 \name{initializeDatabaseConnection}
 \alias{initializeDatabaseConnection}
-\title{TODO:}
+\title{Initialize database connection}
 \usage{
 initializeDatabaseConnection(connectionDetails)
 }
+\arguments{
+\item{connectionDetails}{An R object of type `connectionDetails` created using the
+[DatabaseConnector::createConnectionDetails()] function.}
+}
+\value{
+A database connection object.
+}
 \description{
-TODO:
+Initialize database connection
 }

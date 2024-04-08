@@ -2,8 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{writeStrataToConncurentComparatorData}
 \alias{writeStrataToConncurentComparatorData}
-\title{TODO: doc
-Takes andromeda object and extracts strata to local system and returns it}
+\title{Write strata to concurrent comparator data.}
 \usage{
 writeStrataToConncurentComparatorData(
   concurrentComparatorData,
@@ -12,7 +11,18 @@ writeStrataToConncurentComparatorData(
   targetId
 )
 }
+\arguments{
+\item{concurrentComparatorData}{A [ConcurrentComparatorData] object.}
+
+\item{connection}{A database connection object.}
+
+\item{dbms}{The database management system of the connection understood by SqlRender.}
+
+\item{targetId}{The ID of the target cohort.}
+}
+\value{
+A [ConcurrentComparatorData] object.
+}
 \description{
-TODO: doc
-Takes andromeda object and extracts strata to local system and returns it
+Write strata to concurrent comparator data.
 }

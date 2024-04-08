@@ -2,10 +2,16 @@
 % Please edit documentation in R/Data.R
 \name{removeMatchedCohortEpisodesWithZeroTimeAtRisk}
 \alias{removeMatchedCohortEpisodesWithZeroTimeAtRisk}
-\title{TODO: doc}
+\title{Remove matched cohort episodes with zero time-at-risk.}
 \usage{
 removeMatchedCohortEpisodesWithZeroTimeAtRisk(concurrentComparatorData)
 }
+\arguments{
+\item{concurrentComparatorData}{A [ConcurrentComparatorData] object.}
+}
+\value{
+A [ConcurrentComparatorData] object.
+}
 \description{
-TODO: doc
+Remove matched cohort episodes with zero time-at-risk.
 }

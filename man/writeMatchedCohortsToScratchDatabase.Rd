@@ -2,7 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{writeMatchedCohortsToScratchDatabase}
 \alias{writeMatchedCohortsToScratchDatabase}
-\title{TODO: document once working}
+\title{Write matched cohorts to scratch database by translating and executing CohortExtraction.sql}
 \usage{
 writeMatchedCohortsToScratchDatabase(
   connection,
@@ -16,6 +16,28 @@ writeMatchedCohortsToScratchDatabase(
   testing = FALSE
 )
 }
+\arguments{
+\item{connection}{A database connection object.}
+
+\item{dbms}{The database management system of the connection understood by SqlRender.}
+
+\item{cdmDatabaseSchema}{The name of the database schema where the OMOP CDM instance is stored.}
+
+\item{exposureDatabaseSchema}{The name of the database schema where the exposure data is stored.}
+
+\item{exposureTable}{The name of the table where the exposure data is stored.}
+
+\item{timeAtRiskEnd}{The time-at-risk end in days after subject index date.}
+
+\item{washoutTime}{Washout time in days between target and comparator periods.}
+
+\item{targetId}{The ID of the target cohort.}
+
+\item{testing}{Whether to run in testing mode.}
+}
+\value{
+Void.
+}
 \description{
-TODO: document once working
+Write matched cohorts to scratch database by translating and executing CohortExtraction.sql
 }

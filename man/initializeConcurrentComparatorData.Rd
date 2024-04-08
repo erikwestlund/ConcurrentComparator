@@ -2,10 +2,13 @@
 % Please edit documentation in R/Data.R
 \name{initializeConcurrentComparatorData}
 \alias{initializeConcurrentComparatorData}
-\title{TODO: doc}
+\title{Initialize concurrent comparator data as an empty Andromeda object.}
 \usage{
 initializeConcurrentComparatorData()
 }
+\value{
+A [ConcurrentComparatorData] object.
+}
 \description{
-TODO: doc
+Initialize concurrent comparator data as an empty Andromeda object.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{writeOutcomesToConcurrentComparatorData}
 \alias{writeOutcomesToConcurrentComparatorData}
-\title{TODO: doc}
+\title{Write outcomes to concurrent comparator data.}
 \usage{
 writeOutcomesToConcurrentComparatorData(
   concurrentComparatorData,
@@ -18,6 +18,32 @@ writeOutcomesToConcurrentComparatorData(
   testing = FALSE
 )
 }
+\arguments{
+\item{concurrentComparatorData}{A [ConcurrentComparatorData] object.}
+
+\item{connection}{A database connection object.}
+
+\item{dbms}{The database management system of the connection understood by SqlRender.}
+
+\item{outcomeDatabaseSchema}{The name of the database schema where outcomes are stored.}
+
+\item{cdmDatabaseSchema}{The name of the database schema where the OMOP CDM instance is stored.}
+
+\item{outcomeTable}{The name of the table where outcomes are stored.}
+
+\item{outcomeIds}{A vector of IDs of the outcomes.}
+
+\item{targetId}{The ID of the target cohort.}
+
+\item{timeAtRiskStart}{The time-at-risk start in days after subject index date.}
+
+\item{timeAtRiskEnd}{The time-at-risk end in days after subject index date.}
+
+\item{testing}{Whether to run in testing mode.}
+}
+\value{
+A [ConcurrentComparatorData] object.
+}
 \description{
-TODO: doc
+Write outcomes to concurrent comparator data.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/Data.R
 \name{getTruncatedOutcomeData}
 \alias{getTruncatedOutcomeData}
-\title{TODO: doc}
+\title{Get truncated outcome data}
 \usage{
 getTruncatedOutcomeData(
   matchedCohort,
@@ -11,6 +11,19 @@ getTruncatedOutcomeData(
   studyEndDate = ""
 )
 }
+\arguments{
+\item{matchedCohort}{A tibble of matched cohort data.}
+
+\item{outcomes}{A tibble of outcome data.}
+
+\item{cohortStartDate}{The start date of the cohort.}
+
+\item{studyEndDate}{The end date of the study. If specified, the outcome data will be truncated using this
+date.}
+}
+\value{
+A tibble of outcomes with data truncated by `studyEndDate`.
+}
 \description{
-TODO: doc
+Get truncated outcome data
 }
