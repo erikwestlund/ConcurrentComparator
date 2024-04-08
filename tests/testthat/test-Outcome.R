@@ -46,7 +46,6 @@ test_that("Outcome model recovers null effect when no incidence difference betwe
 
      population <- createStudyPopulation(testData$ccData, outcomeId = 668)
      fit <- fitOutcomeModel(population = population)
-
      exponentiatedExposureCoefficient <- unname(exp(fit$coefficients[1]))
 
      expect_true(
@@ -104,7 +103,6 @@ test_that("Outcome model recovers incidence between groups in all scenarios.", {
 
         population <- createStudyPopulation(testData$ccData, outcomeId = 668)
         fit <- fitOutcomeModel(population = population)
-
         exponentiatedExposureCoefficient <- unname(exp(fit$coefficients[1]))
 
         expect_true(
@@ -181,8 +179,6 @@ test_that("Outcome model recovers null effect when baseline incidence in target 
 
         population <- createStudyPopulation(testData$ccData, outcomeId = 668)
         fit <- fitOutcomeModel(population = population)
-        exp(fit$treatmentEstimate)
-
         exponentiatedExposureCoefficient <- unname(exp(fit$coefficients[1]))
 
         expect_true(
