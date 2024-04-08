@@ -1,5 +1,4 @@
 test_that("Outcome model recovers null effect when no incidence difference between groups in all scenarios.", {
-
   n <- 300000
   targetIncidence <- 0.1
   comparatorIncidence <- 0.1
@@ -56,9 +55,8 @@ test_that("Outcome model recovers null effect when no incidence difference betwe
 })
 
 test_that("Outcome model recovers incidence between groups in all scenarios.", {
-
     n <- 300000
-    targetIncidence <- .2
+    targetIncidence <- 0.3
     comparatorIncidence <- 0.1
     lowRiskTargetIncidence <- targetIncidence
     highRiskTargetIncidence <- targetIncidence
@@ -114,7 +112,6 @@ test_that("Outcome model recovers incidence between groups in all scenarios.", {
 
 
 test_that("Outcome model recovers null effect when baseline incidence in target vs. comparator are equal, but high risk groups have higher incidence.", {
-
     n <- 300000
     lowRiskTargetIncidence <- .01
     highRiskTargetIncidence <- .04

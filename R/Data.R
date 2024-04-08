@@ -277,15 +277,33 @@ loadConcurrentComparatorData <- function(file) {
     return(ConcurrentComparatorData)
 }
 
-#' TODO:
+
+#' Initialize database connection
+#'
+#' @param connectionDetails   An R object of type `connectionDetails` created using the
+#'                            [DatabaseConnector::createConnectionDetails()] function.
+#'
+#' @return
+#' A database connection object.
 initializeDatabaseConnection <- function(connectionDetails) {
     connection <- DatabaseConnector::connect(connectionDetails)
-    # withr::defer(DatabaseConnector::disconnect(connection))
     return(connection)
 }
 
-#' TODO: document
-#' @export
+
+#' Translate CohortExtraction.sql
+#'
+#' @param dbms                  The database management system understood by SqlRender.
+#' @param cdmDatabaseSchema     The name of the database schema where the OMOP CDM instance is stored.
+#' @param cohortDatabaseSchema  The name of the database schema where the cohort data is stored.
+#' @param cohortTable           The name of the table where the cohort data is stored.
+#' @param timeAtRiskEnd         The time-at-risk end in days after subject index date.
+#' @param washoutTime           Washout time in days between target and comparator periods.
+#' @param targetId              The ID of the target cohort.
+#' @param testing               Whether to run in testing mode.
+#'
+#' @return
+#' A string of SQL.
 translateCohortExtractionSql <- function(dbms,
                                          cdmDatabaseSchema,
                                          cohortDatabaseSchema,
@@ -314,8 +332,20 @@ translateCohortExtractionSql <- function(dbms,
 }
 
 
-#' TODO: document once working
-#' @export
+#' Write matched cohorts to scratch database by translating and executing CohortExtraction.sql
+#'
+#' @param connection                A database connection object.
+#' @param dbms                      The database management system of the connection understood by SqlRender.
+#' @param cdmDatabaseSchema         The name of the database schema where the OMOP CDM instance is stored.
+#' @param exposureDatabaseSchema    The name of the database schema where the exposure data is stored.
+#' @param exposureTable             The name of the table where the exposure data is stored.
+#' @param timeAtRiskEnd             The time-at-risk end in days after subject index date.
+#' @param washoutTime               Washout time in days between target and comparator periods.
+#' @param targetId                  The ID of the target cohort.
+#' @param testing                   Whether to run in testing mode.
+#'
+#' @return
+#' Void.
 writeMatchedCohortsToScratchDatabase <- function(connection,
                                                  dbms,
                                                  cdmDatabaseSchema,
@@ -342,15 +372,26 @@ writeMatchedCohortsToScratchDatabase <- function(connection,
     DatabaseConnector::executeSql(connection = connection, sql = sql)
 }
 
-#' TODO: doc
+
+#' Initialize concurrent comparator data as an empty Andromeda object.
+#'
+#' @return
+#' A [ConcurrentComparatorData] object.
 initializeConcurrentComparatorData <- function() {
     concurrentComparatorData <- Andromeda::andromeda()
     return(concurrentComparatorData)
 }
 
 
-#' TODO: doc
-#' Takes andromeda object and extracts strata to local system and returns it
+#' Write strata to concurrent comparator data.
+#'
+#' @param concurrentComparatorData      A [ConcurrentComparatorData] object.
+#' @param connection                    A database connection object.
+#' @param dbms                          The database management system of the connection understood by SqlRender.
+#' @param targetId                      The ID of the target cohort.
+#'
+#' @return
+#' A [ConcurrentComparatorData] object.
 writeStrataToConncurentComparatorData <- function(concurrentComparatorData, connection, dbms, targetId) {
     sql <- SqlRender::render(
       "SELECT * FROM #strata WHERE cohort_definition_id = @target_id",
@@ -367,8 +408,16 @@ writeStrataToConncurentComparatorData <- function(concurrentComparatorData, conn
     return(concurrentComparatorData)
 }
 
-#' TODO: doc
-#' Takes andromeda object and extracts matched to local system and returns it
+
+#' Write matched cohort to concurrent comparator data.
+#'
+#' @param concurrentComparatorData      A [ConcurrentComparatorData] object.
+#' @param connection                    A database connection object.
+#' @param dbms                          The database management system of the connection understood by SqlRender.
+#' @param targetId                      The ID of the target cohort.
+#'
+#' @return
+#' A [ConcurrentComparatorData] object.
 writeMatchedCohortToConcurrentComparatorData <- function(concurrentComparatorData, connection, dbms, targetId) {
     sql <- SqlRender::render(
     "SELECT exposure_id,
@@ -391,7 +440,13 @@ writeMatchedCohortToConcurrentComparatorData <- function(concurrentComparatorDat
     return(concurrentComparatorData)
 }
 
-#' TODO: doc
+
+#' Remove matched cohort episodes with zero time-at-risk.
+#'
+#' @param concurrentComparatorData  A [ConcurrentComparatorData] object.
+#'
+#' @return
+#' A [ConcurrentComparatorData] object.
 removeMatchedCohortEpisodesWithZeroTimeAtRisk <- function(concurrentComparatorData) {
     concurrentComparatorData$matchedCohort <- concurrentComparatorData$matchedCohort %>%
                                   collect() %>%
@@ -400,7 +455,14 @@ removeMatchedCohortEpisodesWithZeroTimeAtRisk <- function(concurrentComparatorDa
     return(concurrentComparatorData)
 }
 
-#' TODO: doc
+
+#' Get diagnostics of the matched cohort, including number of cases with zero time-at-risk.
+#'
+#' @param matchedCohort     A tibble of matched cohort data.
+#'
+#' @return
+#' A list of diagnostics from the matched cohort, including acounts of `zeroT` and `zeroC`, which are the number of
+#' subjects with zero time-at-risk in the target and comparator cohorts, respectively.
 getMatchedCohortDiagnostics <- function(matchedCohort) {
     zeroT <- length(matchedCohort %>% filter(exposureId == 1,
                                                        timeAtRisk == 0) %>% distinct(subjectId))
@@ -411,7 +473,23 @@ getMatchedCohortDiagnostics <- function(matchedCohort) {
                 zeroC = zeroC))
 }
 
-#' TODO: doc
+
+#' Write outcomes to concurrent comparator data.
+#'
+#' @param concurrentComparatorData   A [ConcurrentComparatorData] object.
+#' @param connection                 A database connection object.
+#' @param dbms                       The database management system of the connection understood by SqlRender.
+#' @param outcomeDatabaseSchema      The name of the database schema where outcomes are stored.
+#' @param cdmDatabaseSchema          The name of the database schema where the OMOP CDM instance is stored.
+#' @param outcomeTable               The name of the table where outcomes are stored.
+#' @param outcomeIds                 A vector of IDs of the outcomes.
+#' @param targetId                   The ID of the target cohort.
+#' @param timeAtRiskStart            The time-at-risk start in days after subject index date.
+#' @param timeAtRiskEnd              The time-at-risk end in days after subject index date.
+#' @param testing                    Whether to run in testing mode.
+#'
+#' @return
+#' A [ConcurrentComparatorData] object.
 writeOutcomesToConcurrentComparatorData <- function(
   concurrentComparatorData,
   connection,
@@ -435,7 +513,8 @@ writeOutcomesToConcurrentComparatorData <- function(
                                                  exposure_ids = targetId,
                                                  days_from_obs_start = timeAtRiskStart,
                                                  days_to_obs_end = timeAtRiskEnd,
-                                                 warnOnMissingParameters = TRUE)
+                                                 warnOnMissingParameters = TRUE,
+                                                 testing = false)
 
     if(testing) {
         sql <- patchTestingSql(sql, dbms)
@@ -450,7 +529,15 @@ writeOutcomesToConcurrentComparatorData <- function(
     return(concurrentComparatorData)
 }
 
-#' TODO: doc
+
+#' Save intermediate file.
+#'
+#' @param concurrentComparatorData    A [ConcurrentComparatorData] object.
+#' @param intermediateFileNameStem    The stem of the file name to save the intermediate file to.
+#' @param suffix                      A suffix to append to the file name.
+#'
+#' @return
+#' A [ConcurrentComparatorData] object.
 saveIntermediateFile <- function(concurrentComparatorData, intermediateFileNameStem, suffix = 1) {
   if (!is.null(intermediateFileNameStem)) {
     fileName <- paste0(intermediateFileNameStem, "_", suffix, ".zip")
@@ -461,7 +548,17 @@ saveIntermediateFile <- function(concurrentComparatorData, intermediateFileNameS
   return(concurrentComparatorData)
 }
 
-#' TODO: doc
+
+#' Get truncated outcome data
+#'
+#' @param matchedCohort      A tibble of matched cohort data.
+#' @param outcomes           A tibble of outcome data.
+#' @param cohortStartDate    The start date of the cohort.
+#' @param studyEndDate       The end date of the study. If specified, the outcome data will be truncated using this
+#'                           date.
+#'
+#' @return
+#' A tibble of outcomes with data truncated by `studyEndDate`.
 getTruncatedOutcomeData <- function(matchedCohort, outcomes, cohortStartDate, studyEndDate = "") {
   if (studyEndDate != "") {
         matchedCohort <- matchedCohort %>%
@@ -489,7 +586,17 @@ getTruncatedOutcomeData <- function(matchedCohort, outcomes, cohortStartDate, st
   return(outcomes)
 }
 
-#' TODO: doc
+
+#' Title
+#'
+#' @param concurrentComparatorData      An Andromeda object returned by `initializeConcurrentComparatorData()`
+#' @param targetId                      The ID of the target cohort.
+#' @param outcomeIds                    A vector of IDs of the outcomes.
+#' @param matchedCohortDiagnostics      A list of diagnostics from the matched cohort, including acounts of `zeroT` and
+#'                                      `zeroC`, which are the number of subjects with zero time-at-risk in the target
+#'                                      and comparator cohorts, respectively.
+#' @return
+#' An object of class `ConcurrentComparatorData` with metadata attached.
 writeMetaDataToConcurrentComparatorData <- function(
     concurrentComparatorData,
     targetId,
@@ -517,8 +624,21 @@ writeMetaDataToConcurrentComparatorData <- function(
     return(concurrentComparatorData)
 }
 
-#' TODO: doc
-#' Used only to translate sqlite
+
+#' Patch testing SQL.
+#'
+#' @param sql       SQL to patch.
+#' @param dbms      A database management system understood by SqlRender.
+#'
+#' @details
+#' This function is used to patch SQL for testing purposes. Its purpose is to allow
+#' SQLite to patch SQL to allow the getDbConcurrentComparatorData method to be run
+#' with data stored in SQLite. In particular, it replaces the `floor` function with
+#' `round` and the `extract(year from VAR)` function with
+#' `strftime('%Y', DATETIME(VAR, 'unixepoch'))`.
+#'
+#' @return
+#' A string of SQL.
 patchTestingSql <- function(sql, dbms) {
     if (dbms == "sqlite") {
         # SQLite does not support floor; round instead
