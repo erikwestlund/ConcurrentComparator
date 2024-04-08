@@ -150,7 +150,7 @@ test_that("Two people who get shot > washout period days apart from each other e
     }
 })
 
-test_that("Observed target outcome counts when day after shot counts when daysToStart == 1", {
+test_that("Observed target outcome counts when daysToStart == 1", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
@@ -166,7 +166,7 @@ test_that("Observed target outcome counts when day after shot counts when daysTo
     )
 })
 
-test_that("Observed comparator outcome counts when day after shot counts when daysToStart == 1", {
+test_that("Observed comparator outcome counts when daysToStart == 1", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
@@ -177,17 +177,17 @@ test_that("Observed comparator outcome counts when day after shot counts when da
         )
 
     expect_equal(
-        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
         1
     )
 })
 
-test_that("Observed outcome on day of shot does not count when daysToStart > 0", {
+test_that("Observed target outcome on day of shot does not count when daysToStart > 0", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
             washoutPeriodDays = 22,
-            outcomes = list(
+            targetOutcomes = list(
                 list(outcomeId = 668, daysAfterFirstCohortEntry = 0)
             )
         )
@@ -198,12 +198,29 @@ test_that("Observed outcome on day of shot does not count when daysToStart > 0",
     )
 })
 
-test_that("Outcome on day 7 after shot counts when time at risk ends on day 7", {
+
+test_that("Observed comparator outcome on day of shot does not count when daysToStart > 0", {
+    testData <- generateN2TestData(
+        timeAtRiskStartDays = 1,
+        timeAtRiskEndDays = 7,
+        washoutPeriodDays = 22,
+        comparatorOutcomes = list(
+            list(outcomeId = 668, daysAfterFirstCohortEntry = 0)
+        )
+    )
+
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
+        0
+    )
+})
+
+test_that("Target outcome on day 7 after shot counts when time at risk ends on day 7", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
             washoutPeriodDays = 22,
-            outcomes = list(
+            targetOutcomes = list(
                 list(outcomeId = 668, daysAfterFirstCohortEntry = 7)
             )
         )
@@ -214,12 +231,28 @@ test_that("Outcome on day 7 after shot counts when time at risk ends on day 7", 
     )
 })
 
-test_that("Outcome on day 8 after shot does not count when time at risk ends on day 7", {
+test_that("Comparator outcome on day 7 after shot counts when time at risk ends on day 7", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
             washoutPeriodDays = 22,
-            outcomes = list(
+            comparatorOutcomes = list(
+                list(outcomeId = 668, daysAfterFirstCohortEntry = 7)
+            )
+        )
+
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
+        1
+    )
+})
+
+test_that("Target outcome on day 8 after shot does not count when time at risk ends on day 7", {
+    testData <- generateN2TestData(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22,
+            targetOutcomes = list(
                 list(outcomeId = 668, daysAfterFirstCohortEntry = 8)
             )
         )
@@ -230,23 +263,56 @@ test_that("Outcome on day 8 after shot does not count when time at risk ends on 
     )
 })
 
-test_that("Outcome on day 23 after shot counts as comparator outcome.", {
+test_that("Comparator outcome on day 8 after shot does not count when time at risk ends on day 7", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
             washoutPeriodDays = 22,
-            outcomes = list(
-                list(outcomeId = 668, daysAfterFirstCohortEntry = 5)
+            comparatorOutcomes = list(
+                list(outcomeId = 668, daysAfterFirstCohortEntry = 8)
             )
         )
 
-    testData$ccData$matchedCohort %>% collect()
-    testData$ccData$allOutcomes %>% collect()
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
+        0
+    )
+})
 
-    # Note --
+test_that("Target outcome with 22-day washout period and outcome on day 25 after shot counts as comparator outcome.", {
+    testData <- generateN2TestData(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 21,
+            washoutPeriodDays = 22,
+            comparatorShot1DaysBeforeLastTargetShot = -22, # Need to match the strata; line up with target
+            secondShot = FALSE,
+            targetOutcomes = list(
+                list(outcomeId = 668, daysAfterFirstCohortEntry = 25)
+            )
+        )
+
+    testData$sourceData$cohort
+    testData$ccData$matchedCohort %>% collect()
+    testData$ccData$strata %>% collect()
+    testData$ccData$allOutcomes %>% collect()
+    testData$sourceData$cohort
+
+    # Make sure "target" (subjectId == 1) has outcome
     expect_equal(
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
+        1
+    )
+
+    # Make sure the exposure ID for the target is 0 to ensure target outcome is counting as comparator
+    expect_equal(
+        testData$ccData$matchedCohort %>% collect() %>% filter(subjectId == 1) %>% pull(exposureId),
         0
+    )
+
+    # Make sure the time to event is 3, as it should be 3 days after entering comparator group
+    expect_equal(
+        testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% pull(daysToEvent),
+        3
     )
 })
 

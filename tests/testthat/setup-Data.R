@@ -325,6 +325,11 @@ generateN2TestData <- function(
 
   return(list(
       ccData = ccData,
+      sourceData = list(
+          person = person,
+          cohort = cohort,
+          observationPeriods = observationPeriods
+      ),
       settings = settings
   ))
 }
