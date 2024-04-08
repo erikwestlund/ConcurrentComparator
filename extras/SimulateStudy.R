@@ -1,15 +1,15 @@
 library(ConcurrentComparator)
 
-set.seed(123)
+set.seed(1234)
 
 # Set population parameters:
-n <- 1000000
+n <- 300000
 targetId <- 666
 outcomeIds <- c(668)
-lowRiskTargetIncidence <- .0001
-lowRiskComparatorIncidence <- .0001
-highRiskTargetIncidence <- .0001
-highRiskComparatorIncidence <- .0001
+lowRiskTargetIncidence <- .01
+lowRiskComparatorIncidence <- .01
+highRiskTargetIncidence <- .04
+highRiskComparatorIncidence <- .04
 proportionSecondShot <- 0.65
 timeAtRiskEndDays <- 21
 washoutPeriodDays <- 22
@@ -17,7 +17,12 @@ highRiskGroupDefinition <- list(
     list(
         'var' = 'age_group_id',
         'operator' = 'in',
-        'val' = 14:20
+        'val' = 13:20 # 65-100 years old
+    ),
+    list(
+        'var' = 'race_concept_id',
+        'operator' = '=',
+        'val' = 8516 # Black
     ),
     list(
         'var' = 'cohort_start_date',

@@ -20,7 +20,8 @@ getDbConcurrentComparatorData(
   timeAtRiskStart,
   timeAtRiskEnd,
   washoutTime = timeAtRiskEnd + 1,
-  intermediateFileNameStem = NULL
+  intermediateFileNameStem = NULL,
+  testing = FALSE
 )
 }
 \arguments{

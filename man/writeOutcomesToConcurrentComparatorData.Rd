@@ -14,7 +14,8 @@ writeOutcomesToConcurrentComparatorData(
   outcomeIds,
   targetId,
   timeAtRiskStart,
-  timeAtRiskEnd
+  timeAtRiskEnd,
+  testing = FALSE
 )
 }
 \description{

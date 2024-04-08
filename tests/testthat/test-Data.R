@@ -150,7 +150,7 @@ test_that("Two people who get shot > washout period days apart from each other e
     }
 })
 
-test_that("Observed target outcome counts when daysToStart == 1", {
+test_that("Observed target outcome counts when daysToStart == 1 and outcome is on day 1", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
@@ -166,7 +166,7 @@ test_that("Observed target outcome counts when daysToStart == 1", {
     )
 })
 
-test_that("Observed comparator outcome counts when daysToStart == 1", {
+test_that("Observed comparator outcome counts when daysToStart == 1 and outcome is on day 1", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
@@ -182,7 +182,7 @@ test_that("Observed comparator outcome counts when daysToStart == 1", {
     )
 })
 
-test_that("Observed target outcome on day of shot does not count when daysToStart > 0", {
+test_that("Observed target outcome on day of shot does not count when daysToStart > 0 and outcome is on day 0", {
     testData <- generateN2TestData(
             timeAtRiskStartDays = 1,
             timeAtRiskEndDays = 7,
@@ -199,7 +199,7 @@ test_that("Observed target outcome on day of shot does not count when daysToStar
 })
 
 
-test_that("Observed comparator outcome on day of shot does not count when daysToStart > 0", {
+test_that("Observed comparator outcome on day of shot does not count when daysToStart > 0 and outcome is on day 0", {
     testData <- generateN2TestData(
         timeAtRiskStartDays = 1,
         timeAtRiskEndDays = 7,
@@ -279,7 +279,7 @@ test_that("Comparator outcome on day 8 after shot does not count when time at ri
     )
 })
 
-test_that("Target outcome occuring after washout period counts as comparator outcome for all common scenarios.", {
+test_that("Target outcome occurring after washout period counts as comparator outcome for all common scenarios.", {
 
     scenarios <- list(
         list(

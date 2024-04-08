@@ -12,7 +12,8 @@ writeMatchedCohortsToScratchDatabase(
   exposureTable,
   timeAtRiskEnd,
   washoutTime,
-  targetId
+  targetId,
+  testing = FALSE
 )
 }
 \description{

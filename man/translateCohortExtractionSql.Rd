@@ -11,7 +11,8 @@ translateCohortExtractionSql(
   cohortTable,
   timeAtRiskEnd,
   washoutTime,
-  targetId
+  targetId,
+  testing = testing
 )
 }
 \description{

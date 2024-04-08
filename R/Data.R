@@ -101,7 +101,8 @@ getDbConcurrentComparatorData <- function(connectionDetails,
                                           timeAtRiskStart,
                                           timeAtRiskEnd,
                                           washoutTime = timeAtRiskEnd + 1,
-                                          intermediateFileNameStem = NULL) {
+                                          intermediateFileNameStem = NULL,
+                                          testing = FALSE) {
 
     errorMessages <- checkmate::makeAssertCollection()
     checkmate::assertClass(connectionDetails, "ConnectionDetails", add = errorMessages)
@@ -128,14 +129,15 @@ getDbConcurrentComparatorData <- function(connectionDetails,
 
     ParallelLogger::logInfo("Creating matched cohorts in database for targetId ", targetId, ".")
     writeMatchedCohortsToScratchDatabase(
-      connection,
-      connectionDetails$dbms,
-      cdmDatabaseSchema,
-      exposureDatabaseSchema,
-      exposureTable,
-      timeAtRiskEnd,
-      washoutTime,
-      targetId
+      connection = connection,
+      dbms = connectionDetails$dbms,
+      cdmDatabaseSchema =  cdmDatabaseSchema,
+      exposureDatabaseSchema = exposureDatabaseSchema,
+      exposureTable = exposureTable,
+      timeAtRiskEnd = timeAtRiskEnd,
+      washoutTime = washoutTime,
+      targetId = targetId,
+      testing = testing
     )
 
     ParallelLogger::logInfo("Initializing ConcurrentComparator data object on local system.")
@@ -160,7 +162,8 @@ getDbConcurrentComparatorData <- function(connectionDetails,
       outcomeIds,
       targetId,
       timeAtRiskStart,
-      timeAtRiskEnd
+      timeAtRiskEnd,
+      testing = testing
     )
 
     concurrentComparatorData <- saveIntermediateFile(concurrentComparatorData, intermediateFileNameStem, 1)
@@ -289,7 +292,8 @@ translateCohortExtractionSql <- function(dbms,
                                          cohortTable,
                                          timeAtRiskEnd,
                                          washoutTime,
-                                         targetId) {
+                                         targetId,
+                                         testing = FALSE) {
 
     sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "CohortExtraction.sql",
                                              packageName = "ConcurrentComparator",
@@ -302,10 +306,13 @@ translateCohortExtractionSql <- function(dbms,
                                              cohort_ids = c(targetId),
                                              warnOnMissingParameters = TRUE)
 
-    sql <- patchSql(sql, dbms)
+    if(testing) {
+        sql <- patchTestingSql(sql, dbms)
+    }
 
     return(sql)
 }
+
 
 #' TODO: document once working
 #' @export
@@ -316,7 +323,9 @@ writeMatchedCohortsToScratchDatabase <- function(connection,
                                                  exposureTable,
                                                  timeAtRiskEnd,
                                                  washoutTime,
-                                                 targetId) {
+                                                 targetId,
+                                                 testing = FALSE) {
+
     sql <- translateCohortExtractionSql(dbms,
                                         cdmDatabaseSchema,
                                         exposureDatabaseSchema,
@@ -324,6 +333,11 @@ writeMatchedCohortsToScratchDatabase <- function(connection,
                                         timeAtRiskEnd,
                                         washoutTime,
                                         targetId)
+
+
+    if(testing) {
+        sql <- patchTestingSql(sql, dbms)
+    }
 
     DatabaseConnector::executeSql(connection = connection, sql = sql)
 }
@@ -408,7 +422,8 @@ writeOutcomesToConcurrentComparatorData <- function(
   outcomeIds,
   targetId,
   timeAtRiskStart,
-  timeAtRiskEnd
+  timeAtRiskEnd,
+  testing = FALSE
 ) {
     sql <- SqlRender::loadRenderTranslateSql(sqlFilename = "GetOutcomes.sql",
                                                  packageName = "ConcurrentComparator",
@@ -422,7 +437,9 @@ writeOutcomesToConcurrentComparatorData <- function(
                                                  days_to_obs_end = timeAtRiskEnd,
                                                  warnOnMissingParameters = TRUE)
 
-    sql <- patchSql(sql, dbms)
+    if(testing) {
+        sql <- patchTestingSql(sql, dbms)
+    }
 
     DatabaseConnector::querySqlToAndromeda(connection = connection,
                                            sql = sql,
@@ -502,7 +519,7 @@ writeMetaDataToConcurrentComparatorData <- function(
 
 #' TODO: doc
 #' Used only to translate sqlite
-patchSql <- function(sql, dbms) {
+patchTestingSql <- function(sql, dbms) {
     if (dbms == "sqlite") {
         # SQLite does not support floor; round instead
         sql <- gsub("floor\\(", "round\\(", sql)
