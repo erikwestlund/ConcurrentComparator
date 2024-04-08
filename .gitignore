@@ -8,4 +8,4 @@ extras
 scratch.R
 tests/testthat/errorReportSql.txt
 tests/testthat/testDb.sqlite
-tests/testthat/testhat-problems.rds
+tests/testthat/testthat-problems.rds
