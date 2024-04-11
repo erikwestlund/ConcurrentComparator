@@ -170,6 +170,7 @@ generateN2TestData <- function(
     cdmDatabaseSchema = "main",
     personsTable = "person",
     cohortTable = "cohort",
+    outcomeTable = "cohort",
     observationPeriodTable = "observation_period",
     conditionEraTable = "condition_era",
     conceptAncestorTable = "concept_ancestor"
@@ -296,7 +297,7 @@ generateN2TestData <- function(
                                           exposureDatabaseSchema = cdmDatabaseSchema,
                                           exposureTable = cohortTable,
                                           outcomeDatabaseSchema = cdmDatabaseSchema,
-                                          outcomeTable = cohortTable,
+                                          outcomeTable = outcomeTable,
                                           timeAtRiskStart = timeAtRiskStartDays,
                                           timeAtRiskEnd = timeAtRiskEndDays,
                                           washoutTime = washoutPeriodDays,
@@ -352,6 +353,7 @@ generateTestData <- function(
     cdmDatabaseSchema = "main",
     personsTable = "person",
     cohortTable = "cohort",
+    outcomeTable = "cohort",
     observationPeriodTable = "observation_period",
     conditionEraTable = "condition_era",
     conceptAncestorTable = "concept_ancestor"
@@ -395,7 +397,7 @@ generateTestData <- function(
                                             exposureDatabaseSchema = cdmDatabaseSchema,
                                             exposureTable = cohortTable,
                                             outcomeDatabaseSchema = cdmDatabaseSchema,
-                                            outcomeTable = cohortTable,
+                                            outcomeTable = outcomeTable,
                                             timeAtRiskStart = timeAtRiskStartDays,
                                             timeAtRiskEnd = timeAtRiskEndDays,
                                             washoutTime = washoutPeriodDays,

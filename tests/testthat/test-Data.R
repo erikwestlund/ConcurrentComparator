@@ -80,6 +80,7 @@ test_that("getDbConcurrentComparatorData yields data objects with the expected n
         )
 
         close(testData$ccData)
+    }
 })
 
 test_that("Two people who get shot washout period days apart from each other end up in same Strata.", {
@@ -301,7 +302,6 @@ test_that("Comparator outcome on day 8 after shot does not count when time at ri
 })
 
 test_that("Target outcome occurring after washout period counts as comparator outcome for all common scenarios.", {
-
     scenarios <- list(
         list(
             timeAtRiskStartDays = 0,
@@ -355,3 +355,38 @@ test_that("Target outcome occurring after washout period counts as comparator ou
     }
 })
 
+
+test_that("Outcome extraction works using condition_era as an outcome store rather than a cohort scratch table", {
+    scenarios <- list(
+        list(
+            timeAtRiskStartDays = 0,
+            timeAtRiskEndDays = 7,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 21,
+            washoutPeriodDays = 22
+        ),
+        list(
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = 28,
+            washoutPeriodDays = 29
+        )
+    )
+
+    for(scenario in scenarios) {
+        testData <- generateTestData(
+            n = 10000,
+            proportionSecondShot = 1,
+            studyStartDate = '2020-12-18',
+            studyEndDate = '2021-06-30',
+            timeAtRiskStartDays = 1,
+            timeAtRiskEndDays = scenario$timeAtRiskEndDays,
+            washoutPeriodDays = scenario$washoutPeriodDays,
+            outcomeTable = "condition_era"
+        )
+
+        close(testData$ccData)
+    }
+})
