@@ -49,6 +49,10 @@ generateTestSourceData <- function(
 
   observationPeriods <- generateSimulatedObservationPeriodTable(cohort, washoutPeriodDays)
 
+  conditionEras <- generateSimulatedConditionEraTable(cohort, outcomeIds)
+
+  conceptAncestors <- generateSimulatedConceptAncestorTable(conditionEras)
+
   targetCohort <- generateTargetCohortFromSimulatedCohortTable(
       cohort,
       targetCohortId = targetId,
@@ -97,11 +101,20 @@ generateTestSourceData <- function(
       observation_period_end_date = as.numeric(as.POSIXct(observation_period_end_date), format = "%Y-%m-%d")
   )
 
+  sqliteConditionEras <- conditionEras %>% mutate(
+      condition_era_start_date = as.numeric(as.POSIXct(condition_era_start_date), format = "%Y-%m-%d"),
+      condition_era_end_date = as.numeric(as.POSIXct(condition_era_end_date), format = "%Y-%m-%d")
+  )
+
+  sqliteConceptAncestors <- conceptAncestors
+
   return(
     list(
         cohort = cohort,
         persons = persons,
         observationPeriods = observationPeriods,
+        conditionEras = conditionEras,
+        conceptAncestors = conceptAncestors,
         targetCohort = targetCohort,
         comparatorCohort = comparatorCohort,
         strata = strata,
@@ -110,7 +123,9 @@ generateTestSourceData <- function(
         allOutcomes = allOutcomes,
         sqlitePerson = sqlitePerson,
         sqliteCohort = sqliteCohort,
-        sqliteObservationPeriod = sqliteObservationPeriod
+        sqliteObservationPeriod = sqliteObservationPeriod,
+        sqliteConditionEra = sqliteConditionEras,
+        sqliteConceptAncestor = sqliteConceptAncestors
     )
   )
 }
@@ -120,24 +135,11 @@ createEmptySQLiteDb <- function(dbFile) {
     RSQLite::dbDisconnect(con)
 }
 
-createPersonsTable <- function(persons, schema, personsTable, dbFile) {
+createSqliteTable <- function(data, schema, tableName, dbFile) {
     con <- RSQLite::dbConnect(RSQLite::SQLite(), dbFile)
-    RSQLite::dbWriteTable(con, Id(schema = schema, table = personsTable), persons, overwrite = TRUE)
+    RSQLite::dbWriteTable(con, Id(schema = schema, table = tableName), data, overwrite = TRUE)
     RSQLite::dbDisconnect(con)
 }
-
-createCohortTable <- function(cohort, schema, cohortTable, dbFile) {
-    con <- RSQLite::dbConnect(RSQLite::SQLite(), dbFile)
-    RSQLite::dbWriteTable(con, Id(schema = schema, table = cohortTable), cohort, overwrite = TRUE)
-    RSQLite::dbDisconnect(con)
-}
-
-createObservationPeriodTable <- function(observationPeriods, schema, observationPeriodTable, dbFile) {
-    con <- RSQLite::dbConnect(RSQLite::SQLite(), dbFile)
-    RSQLite::dbWriteTable(con, Id(schema = schema, table = observationPeriodTable), observationPeriods, overwrite = TRUE)
-    RSQLite::dbDisconnect(con)
-}
-
 
 # Specify outcomes for each cohort (targetOutcomes, comparatorOutcomes) in a list of lists, where each list contains
 # the outcomeId and the number of days after entering the first cohort (daysAfterFirstCohortEntry). For example:
@@ -168,7 +170,9 @@ generateN2TestData <- function(
     cdmDatabaseSchema = "main",
     personsTable = "person",
     cohortTable = "cohort",
-    observationPeriodTable = "observation_period"
+    observationPeriodTable = "observation_period",
+    conditionEraTable = "condition_era",
+    conceptAncestorTable = "concept_ancestor"
 ) {
   createEmptySQLiteDb(dbFile)
 
@@ -243,31 +247,15 @@ generateN2TestData <- function(
       2, person2MinDay, person2MaxDay
   )
 
-  # make SQLite ready dataframes by converting dates to unix timestamps
-  sqlitePerson <- person %>% mutate(
-      birth_datetime = as.numeric(as.POSIXct(birth_datetime), format = "%Y-%m-%d")
-  )
+  conditionEras <- generateSimulatedConditionEraTable(cohort, outcomeIds)
 
-  sqliteCohort <- cohort %>% mutate(
-      cohort_start_date = as.numeric(as.POSIXct(cohort_start_date), format = "%Y-%m-%d"),
-      cohort_end_date = as.numeric(as.POSIXct(cohort_end_date), format = "%Y-%m-%d")
-  )
-
-  sqliteObservationPeriod <- observationPeriods %>% mutate(
-      observation_period_start_date = as.numeric(as.POSIXct(observation_period_start_date), format = "%Y-%m-%d"),
-      observation_period_end_date = as.numeric(as.POSIXct(observation_period_end_date), format = "%Y-%m-%d")
-  )
-
-  createPersonsTable(sqlitePerson, cdmDatabaseSchema, personsTable, dbFile)
-  createCohortTable(sqliteCohort, cdmDatabaseSchema, cohortTable, dbFile)
-  createObservationPeriodTable(sqliteObservationPeriod, cdmDatabaseSchema, observationPeriodTable, dbFile)
+  conceptAncestors <- generateSimulatedConceptAncestorTable(conditionEras)
 
   sqliteConnectionDetails <- DatabaseConnector::createConnectionDetails(
       dbms = "sqlite",
       server = dbFile
   )
 
-
   # make SQLite ready dataframes by converting dates to unix timestamps
   sqlitePerson <- person %>% mutate(
       birth_datetime = as.numeric(as.POSIXct(birth_datetime), format = "%Y-%m-%d")
@@ -283,9 +271,18 @@ generateN2TestData <- function(
       observation_period_end_date = as.numeric(as.POSIXct(observation_period_end_date), format = "%Y-%m-%d")
   )
 
-  createPersonsTable(sqlitePerson, cdmDatabaseSchema, personsTable, dbFile)
-  createCohortTable(sqliteCohort, cdmDatabaseSchema, cohortTable, dbFile)
-  createObservationPeriodTable(sqliteObservationPeriod, cdmDatabaseSchema, observationPeriodTable, dbFile)
+  sqliteConditionEras <- conditionEras %>% mutate(
+      condition_era_start_date = as.numeric(as.POSIXct(condition_era_start_date), format = "%Y-%m-%d"),
+      condition_era_end_date = as.numeric(as.POSIXct(condition_era_end_date), format = "%Y-%m-%d")
+  )
+
+  sqliteConceptAncestors <- conceptAncestors
+
+  createSqliteTable(sqlitePerson, cdmDatabaseSchema, personsTable, dbFile)
+  createSqliteTable(sqliteCohort, cdmDatabaseSchema, cohortTable, dbFile)
+  createSqliteTable(sqliteObservationPeriod, cdmDatabaseSchema, observationPeriodTable, dbFile)
+  createSqliteTable(sqliteConditionEras, cdmDatabaseSchema, conditionEraTable, dbFile)
+  createSqliteTable(sqliteConceptAncestors, cdmDatabaseSchema, conceptAncestorTable, dbFile)
 
   sqliteConnectionDetails <- DatabaseConnector::createConnectionDetails(
       dbms = "sqlite",
@@ -355,7 +352,9 @@ generateTestData <- function(
     cdmDatabaseSchema = "main",
     personsTable = "person",
     cohortTable = "cohort",
-    observationPeriodTable = "observation_period"
+    observationPeriodTable = "observation_period",
+    conditionEraTable = "condition_era",
+    conceptAncestorTable = "concept_ancestor"
 ) {
     createEmptySQLiteDb(dbFile)
 
@@ -377,9 +376,11 @@ generateTestData <- function(
         studyEndDate
     )
 
-    createPersonsTable(data$sqlitePerson, cdmDatabaseSchema, personsTable, dbFile)
-    createCohortTable(data$sqliteCohort, cdmDatabaseSchema, cohortTable, dbFile)
-    createObservationPeriodTable(data$sqliteObservationPeriod, cdmDatabaseSchema, observationPeriodTable, dbFile)
+    createSqliteTable(data$sqlitePerson, cdmDatabaseSchema, personsTable, dbFile)
+    createSqliteTable(data$sqliteCohort, cdmDatabaseSchema, cohortTable, dbFile)
+    createSqliteTable(data$sqliteObservationPeriod, cdmDatabaseSchema, observationPeriodTable, dbFile)
+    createSqliteTable(data$sqliteConditionEra, cdmDatabaseSchema, conditionEraTable, dbFile)
+    createSqliteTable(data$sqliteConceptAncestor, cdmDatabaseSchema, conceptAncestorTable, dbFile)
 
     sqliteConnectionDetails <- DatabaseConnector::createConnectionDetails(
         dbms = "sqlite",
