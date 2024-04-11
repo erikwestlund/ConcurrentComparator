@@ -5,6 +5,7 @@
 .idea
 
 extras
+ConcurrentComparatorOutput
 scratch.R
 simDb.sqlite
 tests/testthat/errorReportSql.txt

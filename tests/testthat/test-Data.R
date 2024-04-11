@@ -78,7 +78,8 @@ test_that("getDbConcurrentComparatorData yields data objects with the expected n
             nrow(testData$ccData$allOutcomes %>% collect()),
             nrow(testData$sourceData$allOutcomes)
         )
-    }
+
+        close(testData$ccData)
 })
 
 test_that("Two people who get shot washout period days apart from each other end up in same Strata.", {
@@ -112,6 +113,8 @@ test_that("Two people who get shot washout period days apart from each other end
             testData$ccData$matchedCohort %>% collect() %>% filter(subjectId == 1) %>% pull(strataId),
             testData$ccData$matchedCohort %>% collect() %>% filter(subjectId == 2) %>% pull(strataId)
         )
+
+        close(testData$ccData)
     }
 })
 
@@ -147,6 +150,8 @@ test_that("Two people who get shot > washout period days apart from each other e
             testData$ccData$matchedCohort %>% collect() %>% nrow(),
             0
         )
+
+        close(testData$ccData)
     }
 })
 
@@ -164,6 +169,8 @@ test_that("Observed target outcome counts when daysToStart == 1 and outcome is o
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
         1
     )
+
+    close(testData$ccData)
 })
 
 test_that("Observed comparator outcome counts when daysToStart == 1 and outcome is on day 1", {
@@ -180,6 +187,8 @@ test_that("Observed comparator outcome counts when daysToStart == 1 and outcome 
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
         1
     )
+
+    close(testData$ccData)
 })
 
 test_that("Observed target outcome on day of shot does not count when daysToStart > 0 and outcome is on day 0", {
@@ -196,6 +205,8 @@ test_that("Observed target outcome on day of shot does not count when daysToStar
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
         0
     )
+
+    close(testData$ccData)
 })
 
 
@@ -213,6 +224,8 @@ test_that("Observed comparator outcome on day of shot does not count when daysTo
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
         0
     )
+
+    close(testData$ccData)
 })
 
 test_that("Target outcome on day 7 after shot counts when time at risk ends on day 7", {
@@ -229,6 +242,8 @@ test_that("Target outcome on day 7 after shot counts when time at risk ends on d
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
         1
     )
+
+    close(testData$ccData)
 })
 
 test_that("Comparator outcome on day 7 after shot counts when time at risk ends on day 7", {
@@ -245,6 +260,8 @@ test_that("Comparator outcome on day 7 after shot counts when time at risk ends 
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
         1
     )
+
+    close(testData$ccData)
 })
 
 test_that("Target outcome on day 8 after shot does not count when time at risk ends on day 7", {
@@ -261,6 +278,8 @@ test_that("Target outcome on day 8 after shot does not count when time at risk e
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% nrow(),
         0
     )
+
+    close(testData$ccData)
 })
 
 test_that("Comparator outcome on day 8 after shot does not count when time at risk ends on day 7", {
@@ -277,6 +296,8 @@ test_that("Comparator outcome on day 8 after shot does not count when time at ri
         testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 2) %>% nrow(),
         0
     )
+
+    close(testData$ccData)
 })
 
 test_that("Target outcome occurring after washout period counts as comparator outcome for all common scenarios.", {
@@ -329,6 +350,8 @@ test_that("Target outcome occurring after washout period counts as comparator ou
             testData$ccData$allOutcomes %>% collect() %>% filter(subjectId == 1) %>% pull(daysToEvent),
             3
         )
+
+        close(testData$ccData)
     }
 })
 

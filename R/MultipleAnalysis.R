@@ -47,7 +47,23 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                                             targetIds,
                                             outcomeIds,
                                             controlIds,
-                                            cdmVersion = "5") {
+                                            cdmVersion = "5",
+                                            testing = FALSE) {
+
+
+    # TODO: REMOVE BELOW
+    connectionDetails <- conn
+    cdmDatabaseSchema <- cdmDatabaseSchema
+    exposureDatabaseSchema <- cohortDatabaseSchema
+    exposureTable <- cohortTable
+    outcomeDatabaseSchema <- cohortDatabaseSchema
+    outcomeTable <- cohortTable
+    outputFolder <- outputFolder
+    analysisList <- analysisList
+    targetIds <- c(667)
+    outcomeIds <- c(668)
+    controlIds <-c(74816)
+    testing <- TRUE
 
     results <- NULL
 
@@ -81,7 +97,8 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                         outcomeTable = outcomeTable,
                         timeAtRiskStart = analysis$timeAtRiskStart,
                         timeAtRiskEnd = analysis$timeAtRiskEnd,
-                        washoutTime = analysis$washoutTime)
+                        washoutTime = analysis$washoutTime,
+                        testing = testing)
                     saveAndromeda(ccData, fileName)
                 }
 
@@ -129,7 +146,8 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                         outcomeTable = "condition_era", # TODO: allow for correctly specifying this table
                         timeAtRiskStart = analysis$timeAtRiskStart,
                         timeAtRiskEnd = analysis$timeAtRiskEnd,
-                        washoutTime = analysis$washoutTime)
+                        washoutTime = analysis$washoutTime,
+                        testing = testing)
                     saveAndromeda(ccData, fileName)
                 }
 
