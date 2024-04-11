@@ -4,7 +4,7 @@
 .Ruserdata
 .idea
 
-extras
+#extras
 ConcurrentComparatorOutput
 scratch.R
 simDb.sqlite
