@@ -21,7 +21,7 @@
 #' @param outcomeIds                            The IDs of the outcomes.
 #' @param n                                     The number of subjects in the simulated study population.
 #' @param proportionSecondShot                  The proportion of subjects to receive a  second shot.
-#' @param timeAtRiskEndDays     The number of days after target exposure to consider subject at risk.
+#' @param timeAtRiskEndDays                     The number of days after target exposure to consider subject at risk.
 #' @param washoutPeriodDays                     The number of days after entering target cohort to consider subject
 #'                                              '"safe" and eligible for comparator cohort.
 #' @param highRiskGroupDefinition               A list to pass to the `filterPersonsAgainstHighRiskGroupDefinition()`

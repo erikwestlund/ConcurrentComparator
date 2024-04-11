@@ -513,8 +513,7 @@ writeOutcomesToConcurrentComparatorData <- function(
                                                  exposure_ids = targetId,
                                                  days_from_obs_start = timeAtRiskStart,
                                                  days_to_obs_end = timeAtRiskEnd,
-                                                 warnOnMissingParameters = TRUE,
-                                                 testing = false)
+                                                 warnOnMissingParameters = TRUE)
 
     if(testing) {
         sql <- patchTestingSql(sql, dbms)
