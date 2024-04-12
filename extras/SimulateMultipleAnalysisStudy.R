@@ -164,8 +164,6 @@ results <- runConcurrentComparatorAnalyses(connectionDetails = conn,
                                            outcomeIds = c(668),
                                            controlIds = c(74816))
 
-
-results
 # Cleanup
 RSQlite::dbDisconnect(conn)
 file.remove(dbFile)
