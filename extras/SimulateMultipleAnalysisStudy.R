@@ -9,6 +9,7 @@ cdmDatabaseSchema <- "main"
 cohortDatabaseSchema <- "main"
 cohortTable <- "cohort"
 conditionEraTable <- "condition_era"
+outputFolder <- "./ConcurrentComparatorOutput"
 
 # Set population parameters:
 n <- 1000000
@@ -151,7 +152,6 @@ analysisList <- list(
                                        washoutTime = 36)
 )
 
-outputFolder <- "./ConcurrentComparatorOutput"
 results <- runConcurrentComparatorAnalyses(connectionDetails = conn,
                                            cdmDatabaseSchema = cdmDatabaseSchema,
                                            exposureDatabaseSchema = cohortDatabaseSchema,
@@ -165,7 +165,7 @@ results <- runConcurrentComparatorAnalyses(connectionDetails = conn,
                                            controlIds = c(74816))
 
 
-
+results
 # Cleanup
 RSQlite::dbDisconnect(conn)
 file.remove(dbFile)

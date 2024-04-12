@@ -50,21 +50,6 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                                             cdmVersion = "5",
                                             testing = FALSE) {
 
-
-    # TODO: REMOVE BELOW
-    connectionDetails <- conn
-    cdmDatabaseSchema <- cdmDatabaseSchema
-    exposureDatabaseSchema <- cohortDatabaseSchema
-    exposureTable <- cohortTable
-    outcomeDatabaseSchema <- cohortDatabaseSchema
-    outcomeTable <- cohortTable
-    outputFolder <- outputFolder
-    analysisList <- analysisList
-    targetIds <- c(667)
-    outcomeIds <- c(668)
-    controlIds <-c(74816)
-    testing <- TRUE
-
     results <- NULL
 
     outputFolder <- normalizePath(outputFolder, mustWork = FALSE)
