@@ -13,3 +13,4 @@ testDb.sqlite
 tests/testthat/testDb.sqlite
 tests/testthat/testthat-problems.rds
 *.zip
+errorReportSql.txt
