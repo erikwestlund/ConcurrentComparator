@@ -1,4 +1,4 @@
-rJava::.jinit(parameters="-Xmx8g", force.init = TRUE)
+arJava::.jinit(parameters="-Xmx8g", force.init = TRUE)
 
 library(CohortGenerator)
 library(CirceR)

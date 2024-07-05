@@ -66,35 +66,33 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                                   paste0("a", analysis$analysisId, "_",
                                          "t", targetId, "_"))
 
+
             if (length(outcomeIds) > 0) {
-                fileName <- paste0(fileStem, "o.zip")
 
-                if (!file.exists(fileName)) {
-                    ccData <- getDbConcurrentComparatorData(
-                        connectionDetails = connectionDetails,
-                        cdmDatabaseSchema = cdmDatabaseSchema,
-                        targetId = targetId,
-                        outcomeIds = outcomeIds,
-                        studyEndDate = analysis$studyEndDate,
-                        exposureDatabaseSchema = exposureDatabaseSchema,
-                        exposureTable = exposureTable,
-                        outcomeDatabaseSchema = outcomeDatabaseSchema,
-                        outcomeTable = outcomeTable,
-                        timeAtRiskStart = analysis$timeAtRiskStart,
-                        timeAtRiskEnd = analysis$timeAtRiskEnd,
-                        washoutTime = analysis$washoutTime,
-                        testing = testing)
-                    saveAndromeda(ccData, fileName)
-                }
-
-                ccData <- loadConcurrentComparatorData(fileName)
+                ccDataOutput <- getAndSaveCcData(
+                   fileStem = fileStem,
+                   filenamePrefix = "o",
+                   connectionDetails = connectionDetails,
+                   cdmDatabaseSchema = cdmDatabaseSchema,
+                   targetId = targetId,
+                   outcomeIds = outcomeIds,
+                   studyEndDate = analysis$studyEndDate,
+                   exposureDatabaseSchema = exposureDatabaseSchema,
+                   exposureTable = exposureTable,
+                   outcomeDatabaseSchema = outcomeDatabaseSchema,
+                   outcomeTable = outcomeTable,
+                   timeAtRiskStart = analysis$timeAtRiskStart,
+                   timeAtRiskEnd = analysis$timeAtRiskEnd,
+                   washoutTime = analysis$washoutTime,
+                   testing = testing
+                )
 
                 lapply(outcomeIds, function(outcomeId) {
 
                     fileName <- paste0(fileStem, "o", outcomeId, ".Rds")
                     if (!file.exists(fileName)) {
 
-                        population = createStudyPopulation(ccData,
+                        population = createStudyPopulation(ccDataOutput$data,
                                                            outcomeId = outcomeId)
 
                         fit <- fitOutcomeModel(population = population)
@@ -107,7 +105,7 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                     results <<- c(results, fileName)
                 })
 
-                close(ccData)
+                close(ccDataOutput$data)
             }
 
             # TODO Remove code duplication (slight differences marked with X)
@@ -116,34 +114,30 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
 
                 warning("deprecated use of `controlIds`.  use `CohortGenerator::generateNegativeControlOutcomeCohorts()`")
 
-                fileName <- paste0(fileStem, "c.zip") # X
-
-                if (!file.exists(fileName)) {
-                    ccData <- getDbConcurrentComparatorData(
-                        connectionDetails = connectionDetails,
-                        cdmDatabaseSchema = cdmDatabaseSchema,
-                        targetId = targetId,
-                        outcomeIds = controlIds, # X
-                        studyEndDate = analysis$studyEndDate,
-                        exposureDatabaseSchema = exposureDatabaseSchema,
-                        exposureTable = exposureTable,
-                        outcomeDatabaseSchema = cdmDatabaseSchema, # X
-                        outcomeTable = "condition_era", # TODO: allow for correctly specifying this table
-                        timeAtRiskStart = analysis$timeAtRiskStart,
-                        timeAtRiskEnd = analysis$timeAtRiskEnd,
-                        washoutTime = analysis$washoutTime,
-                        testing = testing)
-                    saveAndromeda(ccData, fileName)
-                }
-
-                ccData <- loadConcurrentComparatorData(fileName)
+                ccDataOutput <- getAndSaveCcData(
+                   fileStem = fileStem,
+                   filenamePrefix = "c",
+                   connectionDetails = connectionDetails,
+                   cdmDatabaseSchema = cdmDatabaseSchema,
+                   targetId = targetId,
+                   outcomeIds = controlIds,
+                   studyEndDate = analysis$studyEndDate,
+                   exposureDatabaseSchema = exposureDatabaseSchema,
+                   exposureTable = exposureTable,
+                   outcomeDatabaseSchema = cdmDatabaseSchema,
+                   outcomeTable = "condition_era",
+                   timeAtRiskStart = analysis$timeAtRiskStart,
+                   timeAtRiskEnd = analysis$timeAtRiskEnd,
+                   washoutTime = analysis$washoutTime,
+                   testing = testing
+                )
 
                 lapply(controlIds, function(outcomeId) { # X
 
                     fileName <- paste0(fileStem, "c", outcomeId, ".Rds") # X
                     if (!file.exists(fileName)) {
 
-                        population = createStudyPopulation(ccData,
+                        population = createStudyPopulation(ccDataOutput$data,
                                                            outcomeId = outcomeId)
 
                         fit <- fitOutcomeModel(population = population)
@@ -156,10 +150,61 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                     results <<- c(results, fileName)
                 })
 
-                close(ccData)
+                close(ccDataOutput$data)
             }
         })
     })
 
     return(results)
+}
+
+getAndSaveCcData <- function(
+    fileStem,
+    filenamePrefix,
+    connectionDetails,
+    cdmDatabaseSchema,
+    targetId,
+    outcomeIds,
+    studyEndDate,
+    exposureDatabaseSchema,
+    exposureTable,
+    outcomeDatabaseSchema,
+    outcomeTable,
+    timeAtRiskStart,
+    timeAtRiskEnd,
+    washoutTime,
+    testing = FALSE
+) {
+    fileName <- paste0(fileStem, paste0(filenamePrefix, ".zip")) #
+
+    if (!file.exists(fileName)) {
+        ccData <- getDbConcurrentComparatorData(
+            connectionDetails = connectionDetails,
+            cdmDatabaseSchema = cdmDatabaseSchema,
+            targetId = targetId,
+            outcomeIds = outcomeIds,
+            studyEndDate = studyEndDate,
+            exposureDatabaseSchema = exposureDatabaseSchema,
+            exposureTable = exposureTable,
+            outcomeDatabaseSchema = outcomeDatabaseSchema,
+            outcomeTable = outcomeTable,
+            timeAtRiskStart = timeAtRiskStart,
+            timeAtRiskEnd = timeAtRiskEnd,
+            washoutTime = washoutTime,
+            testing = testing)
+        saveAndromeda(ccData, fileName)
+    }
+
+    ccData <- loadConcurrentComparatorData(fileName)
+
+    return(list(
+        fileName = fileName,
+        data = ccData
+    ))
+}
+
+getAndSaveOutcomeResults <- function(
+
+) {
+    # TODO
 }
