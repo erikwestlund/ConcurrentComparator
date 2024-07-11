@@ -50,6 +50,10 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                                             cdmVersion = "5",
                                             testing = FALSE) {
 
+    # Note that this value gets updated in the `fitOutcomeModelAndSaveResults` function, which is called by
+    # the `runAndSaveAnalysisToResults`. It is updated using the `<<-` operator.
+    # This is a side effect that is necessary to collect the results of the analysis, which makes this code easier to
+    # write and understand without extra parameters and control structures.
     results <- NULL
 
     outputFolder <- normalizePath(outputFolder, mustWork = FALSE)
@@ -66,91 +70,52 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                                   paste0("a", analysis$analysisId, "_",
                                          "t", targetId, "_"))
 
-
             if (length(outcomeIds) > 0) {
-
-                ccDataOutput <- getAndSaveCcData(
-                   fileStem = fileStem,
-                   filenamePrefix = "o",
-                   connectionDetails = connectionDetails,
-                   cdmDatabaseSchema = cdmDatabaseSchema,
-                   targetId = targetId,
-                   outcomeIds = outcomeIds,
-                   studyEndDate = analysis$studyEndDate,
-                   exposureDatabaseSchema = exposureDatabaseSchema,
-                   exposureTable = exposureTable,
-                   outcomeDatabaseSchema = outcomeDatabaseSchema,
-                   outcomeTable = outcomeTable,
-                   timeAtRiskStart = analysis$timeAtRiskStart,
-                   timeAtRiskEnd = analysis$timeAtRiskEnd,
-                   washoutTime = analysis$washoutTime,
-                   testing = testing
+                runAndSaveAnalysisToResults(
+                    results = results, # Note that results is updated in this function using the `<<-` operator
+                    analysis = analysis,
+                    filenamePrefix = "o",
+                    fitControlValue = NA,
+                    outcomeTable = outcomeTable,
+                    timeAtRiskStart = analysis$timeAtRiskStart,
+                    timeAtRiskEnd = analysis$timeAtRiskEnd,
+                    washoutTime = analysis$washoutTime,
+                    studyEndDate = analysis$studyEndDate,
+                    fileStem = fileStem,
+                    connectionDetails = connectionDetails,
+                    cdmDatabaseSchema = cdmDatabaseSchema,
+                    targetId = targetId,
+                    outcomeIds = outcomeIds,
+                    exposureDatabaseSchema = exposureDatabaseSchema,
+                    exposureTable = exposureTable,
+                    outcomeDatabaseSchema = outcomeDatabaseSchema,
+                    testing = testing
                 )
-
-                lapply(outcomeIds, function(outcomeId) {
-
-                    fileName <- paste0(fileStem, "o", outcomeId, ".Rds")
-                    if (!file.exists(fileName)) {
-
-                        population = createStudyPopulation(ccDataOutput$data,
-                                                           outcomeId = outcomeId)
-
-                        fit <- fitOutcomeModel(population = population)
-                        fit$analysisId <- analysis$analysisId
-                        fit$controlValue <- NA
-
-                        saveRDS(fit, fileName)
-                    }
-
-                    results <<- c(results, fileName)
-                })
-
-                close(ccDataOutput$data)
             }
 
-            # TODO Remove code duplication (slight differences marked with X)
-
-            if (length(controlIds) > 0) { # X
-
+            if (length(controlIds) > 0) {
                 warning("deprecated use of `controlIds`.  use `CohortGenerator::generateNegativeControlOutcomeCohorts()`")
 
-                ccDataOutput <- getAndSaveCcData(
-                   fileStem = fileStem,
-                   filenamePrefix = "c",
-                   connectionDetails = connectionDetails,
-                   cdmDatabaseSchema = cdmDatabaseSchema,
-                   targetId = targetId,
-                   outcomeIds = controlIds,
-                   studyEndDate = analysis$studyEndDate,
-                   exposureDatabaseSchema = exposureDatabaseSchema,
-                   exposureTable = exposureTable,
-                   outcomeDatabaseSchema = cdmDatabaseSchema,
-                   outcomeTable = "condition_era",
-                   timeAtRiskStart = analysis$timeAtRiskStart,
-                   timeAtRiskEnd = analysis$timeAtRiskEnd,
-                   washoutTime = analysis$washoutTime,
-                   testing = testing
+                runAndSaveAnalysisToResults(
+                    results = results,
+                    analysis = analysis,
+                    filenamePrefix = "c",
+                    fitControlValue = 0,
+                    outcomeTable = "condition_era",
+                    timeAtRiskStart = analysis$timeAtRiskStart,
+                    timeAtRiskEnd = analysis$timeAtRiskEnd,
+                    washoutTime = analysis$washoutTime,
+                    studyEndDate = analysis$studyEndDate,
+                    fileStem = fileStem,
+                    connectionDetails = connectionDetails,
+                    cdmDatabaseSchema = cdmDatabaseSchema,
+                    targetId = targetId,
+                    outcomeIds = outcomeIds,
+                    exposureDatabaseSchema = exposureDatabaseSchema,
+                    exposureTable = exposureTable,
+                    outcomeDatabaseSchema = outcomeDatabaseSchema,
+                    testing = testing
                 )
-
-                lapply(controlIds, function(outcomeId) { # X
-
-                    fileName <- paste0(fileStem, "c", outcomeId, ".Rds") # X
-                    if (!file.exists(fileName)) {
-
-                        population = createStudyPopulation(ccDataOutput$data,
-                                                           outcomeId = outcomeId)
-
-                        fit <- fitOutcomeModel(population = population)
-                        fit$analysisId <- analysis$analysisId
-                        fit$controlValue <- 0
-
-                        saveRDS(fit, fileName)
-                    }
-
-                    results <<- c(results, fileName)
-                })
-
-                close(ccDataOutput$data)
             }
         })
     })
@@ -203,8 +168,79 @@ getAndSaveCcData <- function(
     ))
 }
 
-getAndSaveOutcomeResults <- function(
-
+fitOutcomeModelAndSaveResults <- function(
+    results,
+    outcomeIds,
+    analysis,
+    data,
+    fitControlValue,
+    filenamePrefix,
+    fileStem
 ) {
-    # TODO
+    lapply(outcomeIds, function(outcomeId) {
+        fileName <- paste0(fileStem, filenamePrefix, outcomeId, ".Rds")
+        if (!file.exists(fileName)) {
+
+            population = createStudyPopulation(data, outcomeId = outcomeId)
+
+            fit <- fitOutcomeModel(population = population)
+            fit$analysisId <- analysis$analysisId
+            fit$controlValue <- fitControlValue
+
+            saveRDS(fit, fileName)
+        }
+
+        results <<- c(results, fileName)
+    })
+}
+
+runAndSaveAnalysisToResults <- function(
+    results,
+    analysis,
+    fitControlValue,
+    fileStem,
+    filenamePrefix,
+    connectionDetails,
+    cdmDatabaseSchema,
+    targetId,
+    outcomeIds,
+    studyEndDate,
+    exposureDatabaseSchema,
+    exposureTable,
+    outcomeDatabaseSchema,
+    outcomeTable,
+    timeAtRiskStart,
+    timeAtRiskEnd,
+    washoutTime,
+    testing = FALSE
+) {
+    ccDataOutput <- getAndSaveCcData(
+       fileStem = fileStem,
+       filenamePrefix = filenamePrefix,
+       connectionDetails = connectionDetails,
+       cdmDatabaseSchema = cdmDatabaseSchema,
+       targetId = targetId,
+       outcomeIds = outcomeIds,
+       studyEndDate = analysis$studyEndDate,
+       exposureDatabaseSchema = exposureDatabaseSchema,
+       exposureTable = exposureTable,
+       outcomeDatabaseSchema = outcomeDatabaseSchema,
+       outcomeTable = outcomeTable,
+       timeAtRiskStart = analysis$timeAtRiskStart,
+       timeAtRiskEnd = analysis$timeAtRiskEnd,
+       washoutTime = analysis$washoutTime,
+       testing = testing
+    )
+
+    fitOutcomeModelAndSaveResults(
+        results = results,
+        outcomeIds = outcomeIds,
+        analysis = analysis,
+        data = ccDataOutput$data,
+        fitControlValue = fitControlValue,
+        filenamePrefix = filenamePrefix,
+        fileStem = fileStem
+    )
+
+    close(ccDataOutput$data)
 }
