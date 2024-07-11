@@ -31,7 +31,7 @@ test_that("CohortExtraction.sql translates to supported SQL DMBS dialects", {
 })
 
 test_that("getDbConcurrentComparatorData yields data objects with the expected number of records in common scenarios.", {
-    scenarios <- list(git rm
+    scenarios <- list(
         list(
             timeAtRiskStartDays = 0,
             timeAtRiskEndDays = 7,
