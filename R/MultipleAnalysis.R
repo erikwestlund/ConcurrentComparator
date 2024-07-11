@@ -71,50 +71,55 @@ runConcurrentComparatorAnalyses <- function(connectionDetails,
                                          "t", targetId, "_"))
 
             if (length(outcomeIds) > 0) {
-                runAndSaveAnalysisToResults(
-                    results = results, # Note that results is updated in this function using the `<<-` operator
-                    analysis = analysis,
-                    filenamePrefix = "o",
-                    fitControlValue = NA,
-                    outcomeTable = outcomeTable,
-                    timeAtRiskStart = analysis$timeAtRiskStart,
-                    timeAtRiskEnd = analysis$timeAtRiskEnd,
-                    washoutTime = analysis$washoutTime,
-                    studyEndDate = analysis$studyEndDate,
-                    fileStem = fileStem,
-                    connectionDetails = connectionDetails,
-                    cdmDatabaseSchema = cdmDatabaseSchema,
-                    targetId = targetId,
-                    outcomeIds = outcomeIds,
-                    exposureDatabaseSchema = exposureDatabaseSchema,
-                    exposureTable = exposureTable,
-                    outcomeDatabaseSchema = outcomeDatabaseSchema,
-                    testing = testing
+                results <<- c(
+                    results,
+                    runAndSaveAnalysisToResults(
+                        results = results,
+                        analysis = analysis,
+                        filenamePrefix = "o",
+                        fitControlValue = NA,
+                        outcomeTable = outcomeTable,
+                        timeAtRiskStart = analysis$timeAtRiskStart,
+                        timeAtRiskEnd = analysis$timeAtRiskEnd,
+                        washoutTime = analysis$washoutTime,
+                        studyEndDate = analysis$studyEndDate,
+                        fileStem = fileStem,
+                        connectionDetails = connectionDetails,
+                        cdmDatabaseSchema = cdmDatabaseSchema,
+                        targetId = targetId,
+                        outcomeIds = outcomeIds,
+                        exposureDatabaseSchema = exposureDatabaseSchema,
+                        exposureTable = exposureTable,
+                        outcomeDatabaseSchema = outcomeDatabaseSchema,
+                        testing = testing
+                    )
                 )
             }
 
             if (length(controlIds) > 0) {
                 warning("deprecated use of `controlIds`.  use `CohortGenerator::generateNegativeControlOutcomeCohorts()`")
 
-                runAndSaveAnalysisToResults(
-                    results = results,
-                    analysis = analysis,
-                    filenamePrefix = "c",
-                    fitControlValue = 0,
-                    outcomeTable = "condition_era",
-                    timeAtRiskStart = analysis$timeAtRiskStart,
-                    timeAtRiskEnd = analysis$timeAtRiskEnd,
-                    washoutTime = analysis$washoutTime,
-                    studyEndDate = analysis$studyEndDate,
-                    fileStem = fileStem,
-                    connectionDetails = connectionDetails,
-                    cdmDatabaseSchema = cdmDatabaseSchema,
-                    targetId = targetId,
-                    outcomeIds = outcomeIds,
-                    exposureDatabaseSchema = exposureDatabaseSchema,
-                    exposureTable = exposureTable,
-                    outcomeDatabaseSchema = outcomeDatabaseSchema,
-                    testing = testing
+                results <<- c(results,
+                    runAndSaveAnalysisToResults(
+                        results = results,
+                        analysis = analysis,
+                        filenamePrefix = "c",
+                        fitControlValue = 0,
+                        outcomeTable = "condition_era",
+                        timeAtRiskStart = analysis$timeAtRiskStart,
+                        timeAtRiskEnd = analysis$timeAtRiskEnd,
+                        washoutTime = analysis$washoutTime,
+                        studyEndDate = analysis$studyEndDate,
+                        fileStem = fileStem,
+                        connectionDetails = connectionDetails,
+                        cdmDatabaseSchema = cdmDatabaseSchema,
+                        targetId = targetId,
+                        outcomeIds = controlIds,
+                        exposureDatabaseSchema = exposureDatabaseSchema,
+                        exposureTable = exposureTable,
+                        outcomeDatabaseSchema = outcomeDatabaseSchema,
+                        testing = testing
+                    )
                 )
             }
         })
@@ -192,6 +197,8 @@ fitOutcomeModelAndSaveResults <- function(
 
         results <<- c(results, fileName)
     })
+
+    return(results)
 }
 
 runAndSaveAnalysisToResults <- function(
@@ -232,7 +239,7 @@ runAndSaveAnalysisToResults <- function(
        testing = testing
     )
 
-    fitOutcomeModelAndSaveResults(
+    results <- fitOutcomeModelAndSaveResults(
         results = results,
         outcomeIds = outcomeIds,
         analysis = analysis,
@@ -243,4 +250,6 @@ runAndSaveAnalysisToResults <- function(
     )
 
     close(ccDataOutput$data)
+
+    return(results)
 }

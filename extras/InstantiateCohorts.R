@@ -1,12 +1,12 @@
-arJava::.jinit(parameters="-Xmx8g", force.init = TRUE)
+rJava::.jinit(parameters="-Xmx8g", force.init = TRUE)
 
 library(CohortGenerator)
 library(CirceR)
 library(Andromeda)
 
-cdmDatabaseSchema <- "cdm_optum_ehr_v2247"
-serverSuffix <- "optum_ehr"
-cohortDatabaseSchema <- "scratch_msuchard"
+cdmDatabaseSchema <- "omop_cdm_53_pmtx_202203"
+serverSuffix <- "ohdsi_lab"
+cohortDatabaseSchema <- "work_e_westlund185"
 cohortTable <- "mrna_cohort"
 
 conn <- DatabaseConnector::createConnectionDetails(
@@ -15,6 +15,7 @@ conn <- DatabaseConnector::createConnectionDetails(
     port = 5439,
     user = keyring::key_get("redshiftUser"),
     password = keyring::key_get("redshiftPassword"),
+    pathToDriver = paste0(databaseDriversDir, "redShiftV1.2.27.1051"),
     extraSettings = "ssl=true&sslfactory=com.amazon.redshift.ssl.NonValidatingFactory")
 
 info <- list(
