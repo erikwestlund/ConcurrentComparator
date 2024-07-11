@@ -4,9 +4,9 @@ library(CohortGenerator)
 library(CirceR)
 library(Andromeda)
 
-cdmDatabaseSchema <- "omop_cdm_53_pmtx_202203"
-serverSuffix <- "ohdsi_lab"
-cohortDatabaseSchema <- "work_e_westlund185"
+cdmDatabaseSchema <- "cdm_optum_ehr_v2247"
+serverSuffix <- "optum_ehr"
+cohortDatabaseSchema <- "scratch_msuchard"
 cohortTable <- "mrna_cohort"
 
 conn <- DatabaseConnector::createConnectionDetails(
